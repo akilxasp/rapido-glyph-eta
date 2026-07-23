@@ -1,7 +1,10 @@
 package dev.akil.rapidoglyph
 
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
@@ -10,6 +13,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 import java.text.DateFormat
 import java.util.Date
 
@@ -60,9 +64,11 @@ class MainActivity : Activity() {
         })
         content.addView(button("Test with 7 minutes") {
             store.setTestEta(7)
+            DiagnosticLog.record(this, "Manual 7-minute test requested")
             refresh()
         })
         content.addView(button("Refresh diagnostics") { refresh() })
+        content.addView(button("Copy debug dump") { copyDebugDump() })
 
         content.addView(TextView(this).apply {
             text = "Latest Rapido notification payload"
@@ -76,6 +82,15 @@ class MainActivity : Activity() {
         content.addView(rawText)
 
         return ScrollView(this).apply { addView(content) }
+    }
+
+    private fun copyDebugDump() {
+        val dump = DiagnosticLog.dump(this, store)
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("Rapido Glyph ETA debug dump", dump))
+        DiagnosticLog.record(this, "Debug dump copied")
+        Toast.makeText(this, "Debug dump copied — paste it into the chat", Toast.LENGTH_LONG)
+            .show()
     }
 
     private fun button(label: String, action: () -> Unit) =
