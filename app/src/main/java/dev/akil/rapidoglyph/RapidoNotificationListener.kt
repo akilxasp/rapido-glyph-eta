@@ -7,11 +7,13 @@ import android.service.notification.StatusBarNotification
 class RapidoNotificationListener : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         if (sbn.packageName != RAPIDO_PACKAGE) return
+        DiagnosticLog.record(this, "Rapido notification posted")
         capture(sbn.notification)
     }
 
     override fun onListenerConnected() {
         super.onListenerConnected()
+        DiagnosticLog.record(this, "Notification listener connected")
         activeNotifications
             ?.filter { it.packageName == RAPIDO_PACKAGE }
             ?.maxByOrNull { it.postTime }
@@ -32,10 +34,12 @@ class RapidoNotificationListener : NotificationListenerService() {
         val store = EtaStore(this)
         if (eta != null) {
             store.save(eta, raw, nowMillis)
+            DiagnosticLog.record(this, "ETA captured: minutes=${eta.minutes}")
         } else {
             // A secondary Rapido notification (for example, an OTP) must not erase
             // an ETA from the active ride. Keep it visible for diagnostics instead.
             store.saveDiagnostic(raw, nowMillis)
+            DiagnosticLog.record(this, "Rapido notification captured without a parsed ETA")
         }
     }
 
@@ -44,6 +48,7 @@ class RapidoNotificationListener : NotificationListenerService() {
         val rapidoStillActive = activeNotifications
             ?.any { it.packageName == RAPIDO_PACKAGE }
             ?: false
+        DiagnosticLog.record(this, "Rapido notification removed: stillActive=$rapidoStillActive")
         if (!rapidoStillActive) EtaStore(this).clear()
     }
 
