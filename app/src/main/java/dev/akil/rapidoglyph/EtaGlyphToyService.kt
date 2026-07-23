@@ -27,6 +27,10 @@ class EtaGlyphToyService : Service() {
         override fun handleMessage(message: Message) {
             if (message.what == GlyphToy.MSG_GLYPH_TOY) {
                 val event = message.data?.getString(EVENT_DATA_KEY)
+                DiagnosticLog.record(
+                    this@EtaGlyphToyService,
+                    "Glyph message received: event=${event ?: "(null)"}",
+                )
                 if (event == GlyphToy.EVENT_AOD) render()
             } else {
                 super.handleMessage(message)
@@ -37,41 +41,80 @@ class EtaGlyphToyService : Service() {
 
     private val callback = object : GlyphMatrixManager.Callback {
         override fun onServiceConnected(componentName: ComponentName?) {
-            matrixManager?.register(Glyph.DEVICE_25111p)
+            DiagnosticLog.record(
+                this@EtaGlyphToyService,
+                "Glyph SDK connected: component=${componentName?.flattenToShortString()}",
+            )
+            runCatching {
+                matrixManager?.register(Glyph.DEVICE_25111p)
+            }.onSuccess {
+                DiagnosticLog.record(this@EtaGlyphToyService, "Glyph device registered: 25111p")
+            }.onFailure {
+                DiagnosticLog.record(this@EtaGlyphToyService, "Glyph register failed", it)
+            }
             render()
         }
 
-        override fun onServiceDisconnected(componentName: ComponentName?) = Unit
+        override fun onServiceDisconnected(componentName: ComponentName?) {
+            DiagnosticLog.record(
+                this@EtaGlyphToyService,
+                "Glyph SDK disconnected: component=${componentName?.flattenToShortString()}",
+            )
+        }
     }
 
     override fun onCreate() {
         super.onCreate()
         etaStore = EtaStore(this)
         etaStore.register(preferenceListener)
+        DiagnosticLog.record(this, "Glyph Toy service created")
     }
 
     override fun onBind(intent: Intent?): IBinder {
-        matrixManager = GlyphMatrixManager.getInstance(applicationContext)
-        matrixManager?.init(callback)
+        DiagnosticLog.record(this, "Glyph Toy service bound: action=${intent?.action}")
+        runCatching {
+            matrixManager = GlyphMatrixManager.getInstance(applicationContext)
+            checkNotNull(matrixManager) { "GlyphMatrixManager.getInstance returned null" }
+                .init(callback)
+        }.onFailure {
+            DiagnosticLog.record(this, "Glyph SDK initialization failed", it)
+        }
         return messenger.binder
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
-        matrixManager?.turnOff()
-        matrixManager?.unInit()
+        DiagnosticLog.record(this, "Glyph Toy service unbound: action=${intent?.action}")
+        runCatching { matrixManager?.turnOff() }
+            .onFailure { DiagnosticLog.record(this, "Glyph turnOff failed", it) }
+        runCatching { matrixManager?.unInit() }
+            .onFailure { DiagnosticLog.record(this, "Glyph unInit failed", it) }
         matrixManager = null
         return false
     }
 
     override fun onDestroy() {
+        DiagnosticLog.record(this, "Glyph Toy service destroyed")
         etaStore.unregister(preferenceListener)
-        matrixManager?.unInit()
+        runCatching { matrixManager?.unInit() }
+            .onFailure { DiagnosticLog.record(this, "Glyph destroy unInit failed", it) }
         matrixManager = null
         super.onDestroy()
     }
 
     private fun render() {
-        matrixManager?.setMatrixFrame(MatrixRenderer.eta(etaStore.read().displayMinutes()))
+        val minutes = etaStore.read().displayMinutes()
+        val manager = matrixManager
+        if (manager == null) {
+            DiagnosticLog.record(this, "Render skipped: manager=null minutes=$minutes")
+            return
+        }
+        runCatching {
+            manager.setMatrixFrame(MatrixRenderer.eta(minutes))
+        }.onSuccess {
+            DiagnosticLog.record(this, "Frame submitted: minutes=$minutes pixels=169")
+        }.onFailure {
+            DiagnosticLog.record(this, "Frame submission failed: minutes=$minutes", it)
+        }
     }
 
     private companion object {
