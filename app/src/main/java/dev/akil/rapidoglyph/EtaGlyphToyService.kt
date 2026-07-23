@@ -11,6 +11,7 @@ import android.os.Looper
 import android.os.Message
 import android.os.Messenger
 import com.nothing.ketchum.Glyph
+import com.nothing.ketchum.GlyphMatrixFrame
 import com.nothing.ketchum.GlyphMatrixManager
 import com.nothing.ketchum.GlyphToy
 
@@ -109,9 +110,15 @@ class EtaGlyphToyService : Service() {
             return
         }
         runCatching {
-            manager.setMatrixFrame(MatrixRenderer.eta(minutes))
+            val frame = GlyphMatrixFrame.Builder()
+                .addTop(MatrixRenderer.eta(minutes))
+                .build(applicationContext)
+            manager.setMatrixFrame(frame)
         }.onSuccess {
-            DiagnosticLog.record(this, "Frame submitted: minutes=$minutes pixels=169")
+            DiagnosticLog.record(
+                this,
+                "Structured frame submitted: minutes=$minutes pixels=169",
+            )
         }.onFailure {
             DiagnosticLog.record(this, "Frame submission failed: minutes=$minutes", it)
         }
