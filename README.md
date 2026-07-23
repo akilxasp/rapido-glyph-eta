@@ -1,3 +1,87 @@
 # Rapido Glyph ETA
 
-Initial repository setup in progress.
+An Android proof of concept for the Nothing Phone (4a) Pro. It reads Rapido
+passenger notifications, extracts the pickup ETA, and displays it on the
+phone's 13×13 Glyph Matrix.
+
+## How it works
+
+1. `RapidoNotificationListener` receives notifications from
+   `com.rapido.passenger`.
+2. `EtaParser` looks for relative ETAs (`7 min`, `arriving in 5 minutes`) and
+   clock ETAs (`arriving by 10:45 PM`).
+3. The latest value is stored locally in app-private preferences.
+4. `EtaGlyphToyService` renders values such as `7m` or `12m` as a 3×5 pixel
+   font on the 13×13 matrix.
+
+The app does not use the network and does not send notification content
+anywhere.
+
+## Important platform constraint
+
+Phone (4a) Pro supports only Always-On Display (AOD) Glyph Toys. After
+installing the app, select **Rapido ETA** in:
+
+`Settings → Glyph Interface → Flip to Glyph → Always-on Glyph Toy`
+
+Only one AOD Glyph Toy can be selected at a time.
+
+## Setup
+
+Requirements:
+
+- Android Studio with Android SDK 36
+- JDK 17
+- Nothing Phone (4a) Pro
+- Nothing's Glyph Matrix SDK 2.0
+
+Then:
+
+1. Download `glyph-matrix-sdk-2.0.aar` from the official
+   [Glyph Matrix Developer Kit][gdk].
+2. Put it at `app/libs/glyph-matrix-sdk-2.0.aar`.
+3. Open this repository in Android Studio and install the `debug` build.
+4. In the app, grant notification access.
+5. Select the **Rapido ETA** Always-On Glyph Toy.
+6. Use **Test with 7 minutes** before testing a real ride.
+
+The manifest uses Nothing's `test` key. The API-key restriction was removed
+for apps targeting Android 16+, but the metadata remains for compatibility.
+
+## First real-ride test
+
+Rapido's exact notification wording and custom extras can change. The app
+shows the complete text payload it can read under **Latest Rapido notification
+payload**. If the ETA appears in the status bar but is not parsed, copy that
+diagnostic text into a GitHub issue (remove names, phone numbers, locations,
+PINs, or other personal details first). Add the new wording as a failing test
+in `EtaParserTest`, then update the parser.
+
+Android does not expose a public API for reusing Nothing OS's own extracted
+status-bar ETA, so this project reads the underlying Rapido notification
+instead.
+
+## Scope
+
+Current:
+
+- Rapido passenger app only
+- Relative and clock-time ETAs
+- 0–99 minute display
+- Local-only processing
+
+Next:
+
+- Test against real Rapido notification samples
+- Add an expiry time for stale ETAs
+- Improve the toy preview and matrix layout
+- Add other ride-hailing apps behind explicit adapters
+
+## Licence
+
+This repository's source is MIT licensed. Nothing's proprietary Glyph Matrix
+SDK is not included and remains subject to [Nothing's SDK licence][gdk-license].
+
+[gdk]: https://github.com/Nothing-Developer-Programme/GlyphMatrix-Developer-Kit
+[gdk-license]: https://github.com/Nothing-Developer-Programme/GlyphMatrix-Developer-Kit/blob/main/LICENSE.md
+
