@@ -1,12 +1,8 @@
 package dev.akil.rapidoglyph
 
 import android.app.Notification
-import android.os.Bundle
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
 
 class RapidoNotificationListener : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -26,7 +22,12 @@ class RapidoNotificationListener : NotificationListenerService() {
     private fun capture(notification: Notification) {
         val lines = extractText(notification)
         val nowMillis = System.currentTimeMillis()
-        val eta = resolveEta(notification, lines, nowMillis)
+        val eta = NotificationEtaResolver.resolve(
+            lines = lines,
+            shortCriticalText = notification.shortCriticalText?.toString(),
+            whenMillis = notification.`when`,
+            nowMillis = nowMillis,
+        )
         val raw = lines.joinToString(separator = "\n")
         val store = EtaStore(this)
         if (eta != null) {
@@ -46,25 +47,6 @@ class RapidoNotificationListener : NotificationListenerService() {
         if (!rapidoStillActive) EtaStore(this).clear()
     }
 
-    private fun resolveEta(
-        notification: Notification,
-        lines: List<String>,
-        nowMillis: Long,
-    ): ParsedEta? {
-        val now = LocalDateTime.ofInstant(
-            Instant.ofEpochMilli(nowMillis),
-            ZoneId.systemDefault(),
-        )
-        EtaParser.parse(lines, now)?.let { return it }
-
-        val futureWhen = notification.`when` - nowMillis
-        if (futureWhen in 1..MAX_ETA_MILLIS) {
-            val minutes = ((futureWhen + MILLIS_PER_MINUTE - 1L) / MILLIS_PER_MINUTE).toInt()
-            return ParsedEta(minutes, "notification.when")
-        }
-        return null
-    }
-
     private fun extractText(notification: Notification): List<String> {
         val extras = notification.extras
         val preferredKeys = listOf(
@@ -81,7 +63,7 @@ class RapidoNotificationListener : NotificationListenerService() {
             notification.shortCriticalText
                 ?.toString()
                 ?.takeIf(String::isNotBlank)
-                ?.let { add("ETA: $it") }
+                ?.let { add("shortCriticalText=$it") }
             preferredKeys.forEach { key -> extras.get(key)?.toString()?.let(::add) }
             extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
                 ?.map(CharSequence::toString)
@@ -101,7 +83,5 @@ class RapidoNotificationListener : NotificationListenerService() {
 
     private companion object {
         const val RAPIDO_PACKAGE = "com.rapido.passenger"
-        const val MILLIS_PER_MINUTE = 60_000L
-        const val MAX_ETA_MILLIS = 180 * MILLIS_PER_MINUTE
     }
 }
