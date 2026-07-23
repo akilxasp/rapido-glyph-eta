@@ -4,16 +4,38 @@ import android.app.Notification
 import android.os.Bundle
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 class RapidoNotificationListener : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         if (sbn.packageName != RAPIDO_PACKAGE) return
+        capture(sbn.notification)
+    }
 
-        val lines = extractText(sbn.notification.extras)
-        EtaStore(this).save(
-            eta = EtaParser.parse(lines),
-            rawNotification = lines.joinToString(separator = "\n"),
-        )
+    override fun onListenerConnected() {
+        super.onListenerConnected()
+        activeNotifications
+            ?.filter { it.packageName == RAPIDO_PACKAGE }
+            ?.maxByOrNull { it.postTime }
+            ?.notification
+            ?.let(::capture)
+    }
+
+    private fun capture(notification: Notification) {
+        val lines = extractText(notification)
+        val nowMillis = System.currentTimeMillis()
+        val eta = resolveEta(notification, lines, nowMillis)
+        val raw = lines.joinToString(separator = "\n")
+        val store = EtaStore(this)
+        if (eta != null) {
+            store.save(eta, raw, nowMillis)
+        } else {
+            // A secondary Rapido notification (for example, an OTP) must not erase
+            // an ETA from the active ride. Keep it visible for diagnostics instead.
+            store.saveDiagnostic(raw, nowMillis)
+        }
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
@@ -24,7 +46,27 @@ class RapidoNotificationListener : NotificationListenerService() {
         if (!rapidoStillActive) EtaStore(this).clear()
     }
 
-    private fun extractText(extras: Bundle): List<String> {
+    private fun resolveEta(
+        notification: Notification,
+        lines: List<String>,
+        nowMillis: Long,
+    ): ParsedEta? {
+        val now = LocalDateTime.ofInstant(
+            Instant.ofEpochMilli(nowMillis),
+            ZoneId.systemDefault(),
+        )
+        EtaParser.parse(lines, now)?.let { return it }
+
+        val futureWhen = notification.`when` - nowMillis
+        if (futureWhen in 1..MAX_ETA_MILLIS) {
+            val minutes = ((futureWhen + MILLIS_PER_MINUTE - 1L) / MILLIS_PER_MINUTE).toInt()
+            return ParsedEta(minutes, "notification.when")
+        }
+        return null
+    }
+
+    private fun extractText(notification: Notification): List<String> {
+        val extras = notification.extras
         val preferredKeys = listOf(
             Notification.EXTRA_TITLE,
             Notification.EXTRA_TITLE_BIG,
@@ -36,6 +78,10 @@ class RapidoNotificationListener : NotificationListenerService() {
         )
 
         val values = buildList {
+            notification.shortCriticalText
+                ?.toString()
+                ?.takeIf(String::isNotBlank)
+                ?.let { add("ETA: $it") }
             preferredKeys.forEach { key -> extras.get(key)?.toString()?.let(::add) }
             extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
                 ?.map(CharSequence::toString)
@@ -55,6 +101,7 @@ class RapidoNotificationListener : NotificationListenerService() {
 
     private companion object {
         const val RAPIDO_PACKAGE = "com.rapido.passenger"
+        const val MILLIS_PER_MINUTE = 60_000L
+        const val MAX_ETA_MILLIS = 180 * MILLIS_PER_MINUTE
     }
 }
-

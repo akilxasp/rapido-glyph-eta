@@ -20,7 +20,7 @@ class EtaGlyphToyService : Service() {
 
     private val preferenceListener =
         SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == EtaStore.KEY_MINUTES) render()
+            if (key == EtaStore.KEY_MINUTES || key == EtaStore.KEY_ETA_AT) render()
         }
 
     private val eventHandler = object : Handler(Looper.getMainLooper()) {
@@ -71,11 +71,10 @@ class EtaGlyphToyService : Service() {
     }
 
     private fun render() {
-        matrixManager?.setMatrixFrame(MatrixRenderer.eta(etaStore.read().minutes))
+        matrixManager?.setMatrixFrame(MatrixRenderer.eta(etaStore.read().displayMinutes()))
     }
 
     private companion object {
         const val EVENT_DATA_KEY = "data"
     }
 }
-

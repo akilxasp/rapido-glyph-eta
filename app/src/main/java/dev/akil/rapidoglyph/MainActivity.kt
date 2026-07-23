@@ -92,7 +92,7 @@ class MainActivity : Activity() {
             "enabled_notification_listeners",
         ).orEmpty().contains(packageName)
 
-        val eta = state.minutes?.let { "$it min" } ?: "waiting for Rapido"
+        val eta = state.displayMinutes()?.let { "$it min" } ?: "waiting for Rapido"
         val updated = state.updatedAtMillis.takeIf { it > 0 }?.let {
             DateFormat.getDateTimeInstance().format(Date(it))
         } ?: "never"
@@ -109,4 +109,3 @@ class MainActivity : Activity() {
         )
     }
 }
-

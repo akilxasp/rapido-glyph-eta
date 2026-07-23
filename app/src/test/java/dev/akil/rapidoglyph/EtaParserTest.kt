@@ -11,6 +11,7 @@ class EtaParserTest {
         assertEquals(7, EtaParser.parse(listOf("Captain arriving in 7 mins"))?.minutes)
         assertEquals(3, EtaParser.parse(listOf("3 minutes away"))?.minutes)
         assertEquals(12, EtaParser.parse(listOf("ETA: 12 min"))?.minutes)
+        assertEquals(5, EtaParser.parse(listOf("ETA: 5min"))?.minutes)
     }
 
     @Test
@@ -25,4 +26,3 @@ class EtaParserTest {
         assertNull(EtaParser.parse(listOf("₹125 cash")))
     }
 }
-

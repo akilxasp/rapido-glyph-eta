@@ -8,9 +8,11 @@ phone's 13×13 Glyph Matrix.
 
 1. `RapidoNotificationListener` receives notifications from
    `com.rapido.passenger`.
-2. `EtaParser` looks for relative ETAs (`7 min`, `arriving in 5 minutes`) and
-   clock ETAs (`arriving by 10:45 PM`).
-3. The latest value is stored locally in app-private preferences.
+2. The app first reads Android 16's Live Update status-chip value
+   (`shortCriticalText`) or future `when` timestamp, then falls back to visible
+   notification text such as `7 min` or `arriving by 10:45 PM`.
+3. The latest arrival time is stored locally in app-private preferences and
+   counted down once per minute. It expires five minutes after arrival.
 4. `EtaGlyphToyService` renders values such as `7m` or `12m` as a 3×5 pixel
    font on the 13×13 matrix.
 
@@ -57,9 +59,9 @@ diagnostic text into a GitHub issue (remove names, phone numbers, locations,
 PINs, or other personal details first). Add the new wording as a failing test
 in `EtaParserTest`, then update the parser.
 
-Android does not expose a public API for reusing Nothing OS's own extracted
-status-bar ETA, so this project reads the underlying Rapido notification
-instead.
+Android 16 exposes the status-chip value used by Live Update notifications.
+This project reads that value when Rapido supplies it, then falls back to the
+underlying notification text.
 
 ## Scope
 
@@ -73,7 +75,6 @@ Current:
 Next:
 
 - Test against real Rapido notification samples
-- Add an expiry time for stale ETAs
 - Improve the toy preview and matrix layout
 - Add other ride-hailing apps behind explicit adapters
 
@@ -84,4 +85,3 @@ SDK is not included and remains subject to [Nothing's SDK licence][gdk-license].
 
 [gdk]: https://github.com/Nothing-Developer-Programme/GlyphMatrix-Developer-Kit
 [gdk-license]: https://github.com/Nothing-Developer-Programme/GlyphMatrix-Developer-Kit/blob/main/LICENSE.md
-
