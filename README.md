@@ -47,6 +47,12 @@ Then:
 5. Select the **Rapido ETA** Always-On Glyph Toy.
 6. Use **Test with 7 minutes** before testing a real ride.
 
+If the ETA is visible in the app but not on the matrix, tap **Copy debug
+dump** and paste the result into an issue or chat. The dump contains device
+and app build details, the latest Rapido notification payload, and recent
+Glyph Toy service lifecycle/render events. Review it for personal information
+before sharing.
+
 The manifest uses Nothing's `test` key. The API-key restriction was removed
 for apps targeting Android 16+, but the metadata remains for compatibility.
 
