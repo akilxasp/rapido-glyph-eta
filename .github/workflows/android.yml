@@ -1,0 +1,24 @@
+name: Android checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+      - name: Fetch Nothing Glyph Matrix SDK
+        run: |
+          curl --fail --location \
+            https://raw.githubusercontent.com/Nothing-Developer-Programme/GlyphMatrix-Developer-Kit/main/glyph-matrix-sdk-2.0.aar \
+            --output app/libs/glyph-matrix-sdk-2.0.aar
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest
+

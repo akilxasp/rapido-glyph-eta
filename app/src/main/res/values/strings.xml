@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Rapido Glyph ETA</string>
+    <string name="notification_listener_label">Rapido ETA notification access</string>
+    <string name="toy_name">Rapido ETA</string>
+    <string name="toy_summary">Shows your Rapido pickup ETA on the Glyph Matrix</string>
+</resources>
+
