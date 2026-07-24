@@ -1,6 +1,7 @@
 package dev.akil.rapidoglyph
 
 import android.content.Context
+import android.content.ComponentName
 import android.os.Build
 import android.provider.Settings
 import java.text.SimpleDateFormat
@@ -44,6 +45,13 @@ object DiagnosticLog {
             context.contentResolver,
             "enabled_notification_listeners",
         ).orEmpty().contains(context.packageName)
+        val accessibilityAccess = Settings.Secure.getString(
+            context.contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+        ).orEmpty().split(':').any {
+            ComponentName.unflattenFromString(it)?.className ==
+                EssentialKeyAccessibilityService::class.java.name
+        }
         val version = runCatching {
             val info = context.packageManager.getPackageInfo(context.packageName, 0)
             "${info.versionName} (${info.longVersionCode})"
@@ -67,6 +75,7 @@ object DiagnosticLog {
             android=${Build.VERSION.RELEASE} sdk=${Build.VERSION.SDK_INT}
             build=${Build.DISPLAY}
             notificationAccess=$notificationAccess
+            essentialKeyAccessibility=$accessibilityAccess
             glyphSdk=$glyphSdk
             storedMinutes=${state.minutes}
             displayMinutes=${state.displayMinutes()}
