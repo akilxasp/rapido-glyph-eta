@@ -16,11 +16,11 @@ object MatrixRenderer {
         '8' to listOf("111", "101", "111", "101", "111"),
         '9' to listOf("111", "101", "111", "001", "111"),
         'm' to listOf("000", "000", "111", "111", "101"),
-        '-' to listOf("000", "000", "111", "000", "000"),
     )
 
     fun eta(minutes: Int?): IntArray {
-        val text = minutes?.coerceIn(0, 99)?.toString()?.plus("m") ?: "--"
+        if (minutes == null) return idle()
+        val text = minutes.coerceIn(0, 99).toString().plus("m")
         val width = text.length * 3 + (text.length - 1)
         val startX = (SIZE - width) / 2
         val startY = (SIZE - 5) / 2
@@ -37,6 +37,17 @@ object MatrixRenderer {
         }
         return frame
     }
+
+    fun idle(): IntArray =
+        IntArray(SIZE * SIZE).also { frame ->
+            frame[indexOf(6, 6)] = 255
+            listOf(4 to 4, 8 to 4, 8 to 8, 4 to 8).forEach { (x, y) ->
+                frame[indexOf(x, y)] = 144
+            }
+            listOf(6 to 3, 9 to 6, 6 to 9, 3 to 6).forEach { (x, y) ->
+                frame[indexOf(x, y)] = 64
+            }
+        }
 
     fun essentialKeyAnimation(): List<IntArray> {
         val topPath = listOf(
@@ -81,4 +92,6 @@ object MatrixRenderer {
         }
         return movement + fade
     }
+
+    private fun indexOf(x: Int, y: Int) = y * SIZE + x
 }

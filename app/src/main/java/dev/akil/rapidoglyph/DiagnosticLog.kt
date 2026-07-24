@@ -40,6 +40,7 @@ object DiagnosticLog {
 
     fun dump(context: Context, etaStore: EtaStore, includeRawPayload: Boolean = false): String {
         val state = etaStore.read()
+        val displayEta = state.displayEta()
         val notificationAccess = Settings.Secure.getString(
             context.contentResolver,
             "enabled_notification_listeners",
@@ -71,9 +72,12 @@ object DiagnosticLog {
             build=${Build.DISPLAY}
             notificationAccess=$notificationAccess
             essentialKeyAccessibility=$accessibilityAccess
-            displayMinutes=${state.displayMinutes()}
+            displayMinutes=${displayEta?.minutes}
+            displaySource=${displayEta?.source}
             etaAtMillis=${state.etaAtMillis}
             etaUpdatedAtMillis=${state.etaUpdatedAtMillis}
+            testEtaAtMillis=${state.testEtaAtMillis}
+            testStartedAtMillis=${state.testStartedAtMillis}
             payloadUpdatedAtMillis=${state.payloadUpdatedAtMillis}
             glyphConfirmedAtMillis=${state.glyphConfirmedAtMillis}
 

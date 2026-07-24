@@ -8,11 +8,37 @@ data class EtaState(
     val etaUpdatedAtMillis: Long,
     val payloadUpdatedAtMillis: Long,
     val glyphConfirmedAtMillis: Long,
+    val testEtaAtMillis: Long = 0L,
+    val testStartedAtMillis: Long = 0L,
 ) {
     fun displayMinutes(nowMillis: Long = System.currentTimeMillis()): Int? {
-        if (etaAtMillis <= 0L) return null
-        if (nowMillis > etaAtMillis + STALE_GRACE_MILLIS) return null
-        return ((etaAtMillis - nowMillis).coerceAtLeast(0L) + MILLIS_PER_MINUTE - 1L)
+        return displayEta(nowMillis)?.minutes
+    }
+
+    fun displayEta(nowMillis: Long = System.currentTimeMillis()): DisplayEta? {
+        liveMinutes(nowMillis)?.let {
+            return DisplayEta(it, DisplayEtaSource.RAPIDO)
+        }
+        testMinutes(nowMillis)?.let {
+            return DisplayEta(it, DisplayEtaSource.TEST)
+        }
+        return null
+    }
+
+    fun liveMinutes(nowMillis: Long = System.currentTimeMillis()): Int? =
+        countdownMinutes(etaAtMillis, nowMillis, STALE_GRACE_MILLIS)
+
+    fun testMinutes(nowMillis: Long = System.currentTimeMillis()): Int? =
+        countdownMinutes(testEtaAtMillis, nowMillis, graceMillis = 0L)
+
+    private fun countdownMinutes(
+        arrivalAtMillis: Long,
+        nowMillis: Long,
+        graceMillis: Long,
+    ): Int? {
+        if (arrivalAtMillis <= 0L) return null
+        if (nowMillis > arrivalAtMillis + graceMillis) return null
+        return ((arrivalAtMillis - nowMillis).coerceAtLeast(0L) + MILLIS_PER_MINUTE - 1L)
             .div(MILLIS_PER_MINUTE)
             .toInt()
             .coerceAtMost(99)
@@ -22,6 +48,16 @@ data class EtaState(
         const val MILLIS_PER_MINUTE = 60_000L
         const val STALE_GRACE_MILLIS = 5 * MILLIS_PER_MINUTE
     }
+}
+
+data class DisplayEta(
+    val minutes: Int,
+    val source: DisplayEtaSource,
+)
+
+enum class DisplayEtaSource {
+    RAPIDO,
+    TEST,
 }
 
 data class GlyphPreview(
@@ -50,6 +86,8 @@ class EtaStore(context: Context) {
             preferences.getLong(LEGACY_KEY_UPDATED_AT, 0L),
         ),
         glyphConfirmedAtMillis = preferences.getLong(KEY_GLYPH_CONFIRMED_AT, 0L),
+        testEtaAtMillis = preferences.getLong(KEY_TEST_ETA_AT, 0L),
+        testStartedAtMillis = preferences.getLong(KEY_TEST_STARTED_AT, 0L),
     )
 
     fun save(eta: ParsedEta, rawNotification: String, nowMillis: Long = System.currentTimeMillis()) {
@@ -58,6 +96,8 @@ class EtaStore(context: Context) {
             .putString(KEY_RAW, rawNotification)
             .putLong(KEY_ETA_UPDATED_AT, nowMillis)
             .putLong(KEY_PAYLOAD_UPDATED_AT, nowMillis)
+            .remove(KEY_TEST_ETA_AT)
+            .remove(KEY_TEST_STARTED_AT)
             .apply()
     }
 
@@ -73,9 +113,12 @@ class EtaStore(context: Context) {
         nowMillis: Long = System.currentTimeMillis(),
     ) {
         val nextToken = preferences.getLong(KEY_PREVIEW_REQUEST, 0L) + 1L
+        val safeMinutes = minutes.coerceIn(1, 99)
         preferences.edit()
-            .putInt(KEY_PREVIEW_MINUTES, minutes.coerceIn(1, 99))
+            .putInt(KEY_PREVIEW_MINUTES, safeMinutes)
             .putLong(KEY_PREVIEW_REQUESTED_AT, nowMillis)
+            .putLong(KEY_TEST_STARTED_AT, nowMillis)
+            .putLong(KEY_TEST_ETA_AT, nowMillis + safeMinutes * MILLIS_PER_MINUTE)
             .putLong(KEY_PREVIEW_REQUEST, nextToken)
             .apply()
     }
@@ -128,6 +171,7 @@ class EtaStore(context: Context) {
         const val KEY_ETA_AT = "eta_at"
         const val KEY_FORCE_REFRESH = "force_refresh"
         const val KEY_PREVIEW_REQUEST = "preview_request"
+        const val KEY_TEST_ETA_AT = "test_eta_at"
 
         private const val KEY_RAW = "raw_notification"
         private const val KEY_ETA_UPDATED_AT = "eta_updated_at"
@@ -136,6 +180,7 @@ class EtaStore(context: Context) {
         private const val KEY_PREVIEW_MINUTES = "preview_minutes"
         private const val KEY_PREVIEW_REQUESTED_AT = "preview_requested_at"
         private const val KEY_PREVIEW_HANDLED = "preview_handled"
+        private const val KEY_TEST_STARTED_AT = "test_started_at"
         private const val LEGACY_KEY_UPDATED_AT = "updated_at"
         private const val PREFERENCES_NAME = "rapido_eta"
         private const val MILLIS_PER_MINUTE = 60_000L

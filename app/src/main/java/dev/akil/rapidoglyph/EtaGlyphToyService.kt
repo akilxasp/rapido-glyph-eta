@@ -18,7 +18,6 @@ import com.nothing.ketchum.GlyphToy
 class EtaGlyphToyService : Service() {
     private var matrixManager: GlyphMatrixManager? = null
     private var glyphReady = false
-    private var previewActive = false
     private lateinit var etaStore: EtaStore
     private val animationToken = Any()
 
@@ -71,7 +70,6 @@ class EtaGlyphToyService : Service() {
 
         override fun onServiceDisconnected(componentName: ComponentName?) {
             glyphReady = false
-            previewActive = false
             DiagnosticLog.record(
                 this@EtaGlyphToyService,
                 "Glyph SDK disconnected: component=${componentName?.flattenToShortString()}",
@@ -102,7 +100,6 @@ class EtaGlyphToyService : Service() {
         DiagnosticLog.record(this, "Glyph Toy service unbound: action=${intent?.action}")
         eventHandler.removeCallbacksAndMessages(animationToken)
         glyphReady = false
-        previewActive = false
         runCatching { matrixManager?.turnOff() }
             .onFailure { DiagnosticLog.record(this, "Glyph turnOff failed", it) }
         runCatching { matrixManager?.unInit() }
@@ -115,7 +112,6 @@ class EtaGlyphToyService : Service() {
         DiagnosticLog.record(this, "Glyph Toy service destroyed")
         eventHandler.removeCallbacksAndMessages(animationToken)
         glyphReady = false
-        previewActive = false
         etaStore.unregister(preferenceListener)
         runCatching { matrixManager?.unInit() }
             .onFailure { DiagnosticLog.record(this, "Glyph destroy unInit failed", it) }
@@ -124,13 +120,11 @@ class EtaGlyphToyService : Service() {
     }
 
     private fun renderEta() {
-        if (previewActive) return
         render(etaStore.read().displayMinutes())
     }
 
     private fun playEssentialKeyAnimation() {
         eventHandler.removeCallbacksAndMessages(animationToken)
-        previewActive = false
         val frames = MatrixRenderer.essentialKeyAnimation()
         DiagnosticLog.record(this, "Essential Key edge animation started: frames=${frames.size}")
         frames.forEachIndexed { index, frame ->
@@ -154,21 +148,12 @@ class EtaGlyphToyService : Service() {
         if (!glyphReady) return false
         val preview = etaStore.takePendingPreview() ?: return false
         eventHandler.removeCallbacksAndMessages(animationToken)
-        previewActive = true
         DiagnosticLog.record(
             this,
-            "Glyph preview displayed: token=${preview.token} minutes=${preview.minutes}",
+            "7-minute test displayed: token=${preview.token} " +
+                "requestedMinutes=${preview.minutes}",
         )
-        render(preview.minutes)
-        eventHandler.postDelayed(
-            {
-                previewActive = false
-                renderEta()
-                DiagnosticLog.record(this, "Glyph preview completed; live ETA restored")
-            },
-            animationToken,
-            PREVIEW_DURATION_MILLIS,
-        )
+        renderEta()
         return true
     }
 
@@ -197,6 +182,5 @@ class EtaGlyphToyService : Service() {
     private companion object {
         const val EVENT_DATA_KEY = "data"
         const val ANIMATION_FRAME_MILLIS = 70L
-        const val PREVIEW_DURATION_MILLIS = 3_000L
     }
 }

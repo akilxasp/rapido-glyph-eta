@@ -7,6 +7,7 @@
     <string name="setup_required_heading">SETUP REQUIRED</string>
     <string name="ready_heading">READY</string>
     <string name="live_pickup_heading">LIVE PICKUP</string>
+    <string name="test_mode_heading">TEST MODE</string>
     <string name="waiting_for_rapido">Waiting for a Rapido ride</string>
     <string name="enable_notification_next">Enable notification access to continue</string>
     <string name="select_glyph_next">Select Rapido ETA in Glyph Toys</string>
@@ -15,6 +16,7 @@
     <string name="updated_just_now">Rapido pickup · Updated just now</string>
     <string name="updated_minutes_ago">Rapido pickup · Updated %1$d min ago</string>
     <string name="last_rapido_update_minutes">Last Rapido update %1$d min ago</string>
+    <string name="test_pickup">Simulated pickup · Counts down to zero</string>
 
     <string name="notification_access_title">Notification access</string>
     <string name="notification_access_description">Read Rapido’s live pickup ETA</string>
@@ -47,9 +49,10 @@
     <string name="developer_tools_expanded">DEVELOPER TOOLS  −</string>
     <string name="expanded">Expanded</string>
     <string name="collapsed">Collapsed</string>
-    <string name="preview_seven_minutes">PREVIEW 7 MIN ON GLYPH</string>
-    <string name="preview_disabled_during_ride">Preview unavailable during an active Rapido ride</string>
-    <string name="preview_requested">7 min preview requested. Live ride data was not changed.</string>
+    <string name="preview_seven_minutes">START 7 MIN TEST</string>
+    <string name="restart_seven_minutes">RESTART 7 MIN TEST</string>
+    <string name="preview_disabled_during_ride">Test unavailable during an active Rapido ride</string>
+    <string name="preview_requested">7 min test started. It will count down without changing live Rapido data.</string>
     <string name="copy_redacted_dump">COPY REDACTED DEBUG DUMP</string>
     <string name="copy_raw_dump">COPY RAW DEBUG DUMP</string>
     <string name="refresh_diagnostics">REFRESH DIAGNOSTICS</string>

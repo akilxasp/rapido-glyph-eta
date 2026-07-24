@@ -337,7 +337,7 @@ class MainActivity : Activity() {
 
         previewButton = secondaryButton(getString(R.string.preview_seven_minutes)) {
             store.requestPreview(7)
-            DiagnosticLog.record(this@MainActivity, "7-minute Glyph preview requested")
+            DiagnosticLog.record(this@MainActivity, "7-minute test requested")
             Toast.makeText(
                 this@MainActivity,
                 getString(R.string.preview_requested),
@@ -568,16 +568,27 @@ class MainActivity : Activity() {
         val accessibilityAccess = isEssentialKeyAccessEnabled()
         val glyphConfirmed = state.glyphConfirmedAtMillis > 0L
         val setupComplete = notificationAccess && glyphConfirmed
-        val minutes = state.displayMinutes(nowMillis)
+        val displayEta = state.displayEta(nowMillis)
+        val minutes = displayEta?.minutes
+        val liveMinutes = state.liveMinutes(nowMillis)
 
         val presentation = when {
-            minutes != null -> {
+            displayEta?.source == DisplayEtaSource.RAPIDO -> {
                 EtaPresentation(
                     getString(R.string.live_pickup_heading),
-                    getString(R.string.minutes_value, minutes),
+                    getString(R.string.minutes_value, displayEta.minutes),
                     etaFreshness(state.etaUpdatedAtMillis, nowMillis),
                     RED,
-                    minutes,
+                    displayEta.minutes,
+                )
+            }
+            displayEta?.source == DisplayEtaSource.TEST -> {
+                EtaPresentation(
+                    getString(R.string.test_mode_heading),
+                    getString(R.string.minutes_value, displayEta.minutes),
+                    getString(R.string.test_pickup),
+                    Color.WHITE,
+                    displayEta.minutes,
                 )
             }
             !notificationAccess -> {
@@ -642,12 +653,19 @@ class MainActivity : Activity() {
         previousSetupComplete = setupComplete
         updateSetupVisibility(setupComplete)
 
-        previewButton.isEnabled = minutes == null
-        previewButton.alpha = if (minutes == null) 1f else 0.45f
-        previewButton.contentDescription = if (minutes == null) {
-            getString(R.string.preview_seven_minutes)
-        } else {
+        previewButton.isEnabled = liveMinutes == null
+        previewButton.alpha = if (liveMinutes == null) 1f else 0.45f
+        previewButton.text = getString(
+            if (displayEta?.source == DisplayEtaSource.TEST) {
+                R.string.restart_seven_minutes
+            } else {
+                R.string.preview_seven_minutes
+            },
+        )
+        previewButton.contentDescription = if (liveMinutes != null) {
             getString(R.string.preview_disabled_during_ride)
+        } else {
+            previewButton.text
         }
 
         rawText.text = state.rawNotification.ifBlank {

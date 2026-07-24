@@ -26,6 +26,18 @@ class MatrixRendererTest {
     }
 
     @Test
+    fun idleFrameIsACenteredPulseInsteadOfTextLikeDashes() {
+        val frame = MatrixRenderer.eta(null)
+
+        assertEquals(169, frame.size)
+        assertEquals(255, frame[6 * MatrixRenderer.SIZE + 6])
+        assertEquals(9, frame.count { it > 0 })
+        assertTrue(frame.any { it == 144 })
+        assertTrue(frame.any { it == 64 })
+        assertTrue(frame.all { it in 0..255 })
+    }
+
+    @Test
     fun essentialKeyAnimationTravelsAroundACircularRingAndFades() {
         val frames = MatrixRenderer.essentialKeyAnimation()
         val rightMiddle = 6 * MatrixRenderer.SIZE + 12
