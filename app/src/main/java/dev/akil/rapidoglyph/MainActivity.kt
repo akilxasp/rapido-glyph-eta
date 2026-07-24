@@ -22,6 +22,7 @@ import android.view.View
 import android.view.WindowInsets
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -32,6 +33,9 @@ class MainActivity : Activity() {
     private lateinit var etaEyebrow: TextView
     private lateinit var etaValue: TextView
     private lateinit var etaMeta: TextView
+    private lateinit var etaStatusDot: View
+    private lateinit var etaMatrixPreview: GlyphMatrixPreviewView
+    private lateinit var etaTextGroup: LinearLayout
     private lateinit var notificationRow: SetupRow
     private lateinit var glyphRow: SetupRow
     private lateinit var essentialKeyRow: SetupRow
@@ -46,6 +50,7 @@ class MainActivity : Activity() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private var setupExpanded = true
     private var previousSetupComplete: Boolean? = null
+    private var previousEtaPresentation: String? = null
 
     private val preferenceListener =
         SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
@@ -142,23 +147,63 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun etaCard() = LinearLayout(this).apply {
-        orientation = LinearLayout.VERTICAL
-        setPadding(dp(24), dp(22), dp(24), dp(22))
-        background = rounded(BLACK, 28)
+    private fun etaCard() = FrameLayout(this).apply {
+        background = rounded(BLACK, 28, CARD_STROKE)
+        clipToOutline = true
+        minimumHeight = dp(156)
 
-        etaEyebrow = label(getString(R.string.ready_heading), Color.WHITE).apply {
-            isAccessibilityHeading = true
+        etaMatrixPreview = GlyphMatrixPreviewView(this@MainActivity).apply {
+            alpha = 0.82f
         }
-        addView(etaEyebrow)
-        etaValue = text("—", 52f, Color.WHITE, Typeface.BOLD).apply {
-            typeface = Typeface.MONOSPACE
-            letterSpacing = -0.04f
-            setPadding(0, dp(8), 0, dp(4))
+        addView(
+            etaMatrixPreview,
+            FrameLayout.LayoutParams(dp(104), dp(104), Gravity.END or Gravity.TOP).apply {
+                topMargin = dp(17)
+                marginEnd = dp(17)
+            },
+        )
+
+        etaTextGroup = LinearLayout(this@MainActivity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(22), dp(24), dp(22))
+
+            addView(LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                etaStatusDot = View(this@MainActivity).apply {
+                    background = circle(ON_DARK)
+                    importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                }
+                addView(
+                    etaStatusDot,
+                    LinearLayout.LayoutParams(dp(6), dp(6)).apply {
+                        marginEnd = dp(10)
+                    },
+                )
+                etaEyebrow = label(getString(R.string.ready_heading), Color.WHITE).apply {
+                    isAccessibilityHeading = true
+                }
+                addView(etaEyebrow)
+            })
+
+            etaValue = text("—", 52f, Color.WHITE, Typeface.BOLD).apply {
+                typeface = Typeface.MONOSPACE
+                letterSpacing = -0.04f
+                setPadding(0, dp(8), dp(104), dp(4))
+            }
+            addView(etaValue)
+            etaMeta = text(getString(R.string.waiting_for_rapido), 14f, ON_DARK).apply {
+                setPadding(0, dp(4), 0, 0)
+            }
+            addView(etaMeta)
         }
-        addView(etaValue)
-        etaMeta = text(getString(R.string.waiting_for_rapido), 14f, ON_DARK)
-        addView(etaMeta)
+        addView(
+            etaTextGroup,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
     }.apply {
         layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
@@ -388,6 +433,12 @@ class MainActivity : Activity() {
             stroke?.let { setStroke(dp(1), it) }
         }
 
+    private fun circle(fill: Int) =
+        GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(fill)
+        }
+
     private fun setupRowBackground() = StateListDrawable().apply {
         addState(
             intArrayOf(android.R.attr.state_pressed),
@@ -519,28 +570,45 @@ class MainActivity : Activity() {
         val setupComplete = notificationAccess && glyphConfirmed
         val minutes = state.displayMinutes(nowMillis)
 
-        when {
+        val presentation = when {
             minutes != null -> {
-                etaEyebrow.text = getString(R.string.live_pickup_heading)
-                etaValue.text = getString(R.string.minutes_value, minutes)
-                etaMeta.text = etaFreshness(state.etaUpdatedAtMillis, nowMillis)
+                EtaPresentation(
+                    getString(R.string.live_pickup_heading),
+                    getString(R.string.minutes_value, minutes),
+                    etaFreshness(state.etaUpdatedAtMillis, nowMillis),
+                    RED,
+                    minutes,
+                )
             }
             !notificationAccess -> {
-                etaEyebrow.text = getString(R.string.setup_required_heading)
-                etaValue.text = "—"
-                etaMeta.text = getString(R.string.enable_notification_next)
+                EtaPresentation(
+                    getString(R.string.setup_required_heading),
+                    "—",
+                    getString(R.string.enable_notification_next),
+                    RED,
+                    null,
+                )
             }
             !glyphConfirmed -> {
-                etaEyebrow.text = getString(R.string.setup_required_heading)
-                etaValue.text = "—"
-                etaMeta.text = getString(R.string.select_glyph_next)
+                EtaPresentation(
+                    getString(R.string.setup_required_heading),
+                    "—",
+                    getString(R.string.select_glyph_next),
+                    RED,
+                    null,
+                )
             }
             else -> {
-                etaEyebrow.text = getString(R.string.ready_heading)
-                etaValue.text = "—"
-                etaMeta.text = getString(R.string.waiting_for_rapido)
+                EtaPresentation(
+                    getString(R.string.ready_heading),
+                    "—",
+                    getString(R.string.waiting_for_rapido),
+                    Color.WHITE,
+                    null,
+                )
             }
         }
+        updateEtaCard(presentation)
 
         updateSetupRow(
             notificationRow,
@@ -602,6 +670,9 @@ class MainActivity : Activity() {
 
     private fun updateSetupRow(row: SetupRow, state: String) {
         row.state.text = state
+        row.state.setTextColor(
+            if (state == getString(R.string.status_required)) RED else MUTED,
+        )
         row.container.stateDescription = state
         row.container.contentDescription = getString(
             R.string.setup_row_accessibility,
@@ -609,6 +680,33 @@ class MainActivity : Activity() {
             state,
             row.description,
         )
+    }
+
+    private fun updateEtaCard(presentation: EtaPresentation) {
+        etaEyebrow.text = presentation.heading
+        etaValue.text = presentation.value
+        etaMeta.text = presentation.meta
+        etaStatusDot.background = circle(presentation.dotColor)
+        etaMatrixPreview.showMinutes(presentation.minutes)
+
+        val key = "${presentation.heading}|${presentation.value}|${presentation.meta}"
+        if (previousEtaPresentation != null && previousEtaPresentation != key) {
+            etaTextGroup.animate().cancel()
+            etaMatrixPreview.animate().cancel()
+            etaTextGroup.alpha = 0.55f
+            etaTextGroup.translationY = dp(4).toFloat()
+            etaMatrixPreview.alpha = 0.35f
+            etaTextGroup.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(STATE_TRANSITION_MILLIS)
+                .start()
+            etaMatrixPreview.animate()
+                .alpha(0.82f)
+                .setDuration(STATE_TRANSITION_MILLIS)
+                .start()
+        }
+        previousEtaPresentation = key
     }
 
     private fun etaFreshness(etaUpdatedAtMillis: Long, nowMillis: Long): String {
@@ -648,12 +746,21 @@ class MainActivity : Activity() {
         val description: String,
     )
 
+    private data class EtaPresentation(
+        val heading: String,
+        val value: String,
+        val meta: String,
+        val dotColor: Int,
+        val minutes: Int?,
+    )
+
     private companion object {
         const val BLACK = 0xFF111111.toInt()
         const val MUTED = 0xFF696969.toInt()
         const val ON_DARK = 0xFFB7B7B7.toInt()
         const val SURFACE = 0xFFF2F2F2.toInt()
         const val STROKE = 0xFFD8D8D8.toInt()
+        const val CARD_STROKE = 0xFF2A2A2A.toInt()
         const val ROW_PRESSED = 0xFFE2E2E2.toInt()
         const val RED = 0xFFD71920.toInt()
         const val ACTION_ACCESSIBILITY_DETAILS_SETTINGS =
@@ -661,6 +768,7 @@ class MainActivity : Activity() {
         const val FOREGROUND_REFRESH_MILLIS = 30_000L
         const val MILLIS_PER_MINUTE = 60_000L
         const val STALE_UPDATE_MINUTES = 5L
+        const val STATE_TRANSITION_MILLIS = 180L
 
         const val GLYPH_TOY_PACKAGE = "com.nothing.thirdparty"
 
