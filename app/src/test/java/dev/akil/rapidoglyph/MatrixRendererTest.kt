@@ -26,14 +26,14 @@ class MatrixRendererTest {
     }
 
     @Test
-    fun essentialKeyAnimationTravelsFromRightToLeftAlongEdgesAndFades() {
+    fun essentialKeyAnimationTravelsAroundACircularRingAndFades() {
         val frames = MatrixRenderer.essentialKeyAnimation()
         val rightMiddle = 6 * MatrixRenderer.SIZE + 12
         val leftMiddle = 6 * MatrixRenderer.SIZE
 
-        assertEquals(29, frames.size)
+        assertEquals(23, frames.size)
         assertEquals(255, frames.first()[rightMiddle])
-        assertEquals(255, frames[24][leftMiddle])
+        assertEquals(255, frames[18][leftMiddle])
         assertTrue(frames.last().all { it == 0 })
         frames.forEach { frame ->
             assertEquals(169, frame.size)
@@ -42,9 +42,13 @@ class MatrixRendererTest {
                 val x = index % MatrixRenderer.SIZE
                 val y = index / MatrixRenderer.SIZE
                 if (brightness > 0) {
-                    assertTrue(x == 0 || x == 12 || y == 0 || y == 12)
+                    val distanceSquared = (x - 6) * (x - 6) + (y - 6) * (y - 6)
+                    assertTrue(distanceSquared in 25..41)
                 }
             }
+        }
+        listOf(0, 12, 156, 168).forEach { corner ->
+            assertTrue(frames.all { it[corner] == 0 })
         }
     }
 }
