@@ -63,8 +63,19 @@ class MainActivity : Activity() {
             }
         })
         content.addView(button("Test with 7 minutes") {
+            store.stopSweep()
             store.setTestEta(7)
             DiagnosticLog.record(this, "Manual 7-minute test requested")
+            refresh()
+        })
+        content.addView(button("Start 1–99 sweep (3 sec each)") {
+            store.startSweep()
+            DiagnosticLog.record(this, "1–99 matrix sweep requested")
+            refresh()
+        })
+        content.addView(button("Stop number sweep") {
+            store.stopSweep()
+            DiagnosticLog.record(this, "Matrix sweep stop requested")
             refresh()
         })
         content.addView(button("Refresh diagnostics") { refresh() })
@@ -108,10 +119,18 @@ class MainActivity : Activity() {
         ).orEmpty().contains(packageName)
 
         val eta = state.displayMinutes()?.let { "$it min" } ?: "waiting for Rapido"
+        val sweep = store.readSweep()
+        val sweepStatus = if (sweep.enabled) {
+            "running (${sweep.minutes}m, 3 sec each)"
+        } else {
+            "stopped"
+        }
         val updated = state.updatedAtMillis.takeIf { it > 0 }?.let {
             DateFormat.getDateTimeInstance().format(Date(it))
         } ?: "never"
-        statusText.text = "Notification access: ${if (notificationAccess) "on" else "off"}\nETA: $eta\nUpdated: $updated"
+        statusText.text =
+            "Notification access: ${if (notificationAccess) "on" else "off"}\n" +
+                "ETA: $eta\nSweep: $sweepStatus\nUpdated: $updated"
         rawText.text = state.rawNotification.ifBlank {
             "No Rapido notification captured yet. Keep this installed, grant notification access, then book a ride."
         }
