@@ -257,7 +257,7 @@ class MainActivity : Activity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.TOP
             setPadding(dp(18), dp(17), dp(18), dp(17))
-            minHeight = dp(76)
+            minimumHeight = dp(76)
             isClickable = true
             isFocusable = true
             background = setupRowBackground()
