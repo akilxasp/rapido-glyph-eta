@@ -79,6 +79,11 @@ class EtaStore(context: Context) {
         preferences.edit().putBoolean(KEY_SWEEP_ENABLED, false).apply()
     }
 
+    fun requestGlyphRefresh() {
+        val nextToken = preferences.getLong(KEY_FORCE_REFRESH, 0L) + 1L
+        preferences.edit().putLong(KEY_FORCE_REFRESH, nextToken).apply()
+    }
+
     fun clear() {
         preferences.edit()
             .putInt(KEY_MINUTES, NO_ETA)
@@ -101,6 +106,7 @@ class EtaStore(context: Context) {
         const val KEY_ETA_AT = "eta_at"
         const val KEY_SWEEP_ENABLED = "sweep_enabled"
         const val KEY_SWEEP_MINUTES = "sweep_minutes"
+        const val KEY_FORCE_REFRESH = "force_refresh"
 
         fun nextSweepMinute(minutes: Int): Int =
             if (minutes in 1 until 99) minutes + 1 else 1
