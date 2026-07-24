@@ -20,14 +20,14 @@ class EtaGlyphToyService : Service() {
     private lateinit var etaStore: EtaStore
     private var sweepScheduled = false
     private var sweepMinutes = 1
+    private val animationToken = Any()
 
     private val preferenceListener =
         SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             when (key) {
                 EtaStore.KEY_SWEEP_ENABLED -> syncSweepMode()
                 EtaStore.KEY_FORCE_REFRESH -> {
-                    renderCurrentFrame()
-                    DiagnosticLog.record(this, "Forced Glyph refresh processed")
+                    playEssentialKeyAnimation()
                 }
                 EtaStore.KEY_MINUTES, EtaStore.KEY_ETA_AT ->
                     if (!etaStore.readSweep().enabled) renderEta()
@@ -115,6 +115,7 @@ class EtaGlyphToyService : Service() {
     override fun onUnbind(intent: Intent?): Boolean {
         DiagnosticLog.record(this, "Glyph Toy service unbound: action=${intent?.action}")
         stopSweepLoop()
+        eventHandler.removeCallbacksAndMessages(animationToken)
         runCatching { matrixManager?.turnOff() }
             .onFailure { DiagnosticLog.record(this, "Glyph turnOff failed", it) }
         runCatching { matrixManager?.unInit() }
@@ -126,6 +127,7 @@ class EtaGlyphToyService : Service() {
     override fun onDestroy() {
         DiagnosticLog.record(this, "Glyph Toy service destroyed")
         stopSweepLoop()
+        eventHandler.removeCallbacksAndMessages(animationToken)
         etaStore.unregister(preferenceListener)
         runCatching { matrixManager?.unInit() }
             .onFailure { DiagnosticLog.record(this, "Glyph destroy unInit failed", it) }
@@ -165,29 +167,52 @@ class EtaGlyphToyService : Service() {
         if (sweep.enabled) render(sweep.minutes) else renderEta()
     }
 
+    private fun playEssentialKeyAnimation() {
+        eventHandler.removeCallbacksAndMessages(animationToken)
+        val frames = MatrixRenderer.essentialKeyAnimation()
+        DiagnosticLog.record(this, "Essential Key edge animation started: frames=${frames.size}")
+        frames.forEachIndexed { index, frame ->
+            eventHandler.postDelayed(
+                { submitFrame(frame) },
+                animationToken,
+                index * ANIMATION_FRAME_MILLIS,
+            )
+        }
+        eventHandler.postDelayed(
+            {
+                renderCurrentFrame()
+                DiagnosticLog.record(this, "Essential Key animation completed; ETA restored")
+            },
+            animationToken,
+            frames.size * ANIMATION_FRAME_MILLIS,
+        )
+    }
+
     private fun render(minutes: Int?) {
+        if (submitFrame(MatrixRenderer.eta(minutes))) {
+            DiagnosticLog.record(this, "Structured frame submitted: minutes=$minutes pixels=169")
+        }
+    }
+
+    private fun submitFrame(colors: IntArray): Boolean {
         val manager = matrixManager
         if (manager == null) {
-            DiagnosticLog.record(this, "Render skipped: manager=null minutes=$minutes")
-            return
+            DiagnosticLog.record(this, "Render skipped: manager=null")
+            return false
         }
-        runCatching {
+        return runCatching {
             val frame = GlyphMatrixFrame.Builder()
-                .addTop(MatrixRenderer.eta(minutes))
+                .addTop(colors)
                 .build(applicationContext)
             manager.setMatrixFrame(frame)
-        }.onSuccess {
-            DiagnosticLog.record(
-                this,
-                "Structured frame submitted: minutes=$minutes pixels=169",
-            )
         }.onFailure {
-            DiagnosticLog.record(this, "Frame submission failed: minutes=$minutes", it)
-        }
+            DiagnosticLog.record(this, "Frame submission failed", it)
+        }.isSuccess
     }
 
     private companion object {
         const val EVENT_DATA_KEY = "data"
         const val SWEEP_INTERVAL_MILLIS = 3_000L
+        const val ANIMATION_FRAME_MILLIS = 70L
     }
 }
