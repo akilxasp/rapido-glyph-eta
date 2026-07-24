@@ -14,7 +14,7 @@ class MatrixRendererTest {
     }
 
     @Test
-    fun everySweepValueProducesAUniqueValidFrame() {
+    fun everyEtaValueProducesAUniqueValidFrame() {
         val frames = (1..99).map(MatrixRenderer::eta)
 
         frames.forEach { frame ->

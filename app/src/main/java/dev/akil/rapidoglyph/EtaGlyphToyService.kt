@@ -18,34 +18,15 @@ import com.nothing.ketchum.GlyphToy
 class EtaGlyphToyService : Service() {
     private var matrixManager: GlyphMatrixManager? = null
     private lateinit var etaStore: EtaStore
-    private var sweepScheduled = false
-    private var sweepMinutes = 1
     private val animationToken = Any()
 
     private val preferenceListener =
         SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             when (key) {
-                EtaStore.KEY_SWEEP_ENABLED -> syncSweepMode()
-                EtaStore.KEY_FORCE_REFRESH -> {
-                    playEssentialKeyAnimation()
-                }
-                EtaStore.KEY_MINUTES, EtaStore.KEY_ETA_AT ->
-                    if (!etaStore.readSweep().enabled) renderEta()
+                EtaStore.KEY_FORCE_REFRESH -> playEssentialKeyAnimation()
+                EtaStore.KEY_ETA_AT -> renderEta()
             }
         }
-
-    private val sweepRunnable = object : Runnable {
-        override fun run() {
-            if (!etaStore.readSweep().enabled) {
-                sweepScheduled = false
-                return
-            }
-            etaStore.setSweepMinutes(sweepMinutes)
-            render(sweepMinutes)
-            sweepMinutes = EtaStore.nextSweepMinute(sweepMinutes)
-            eventHandler.postDelayed(this, SWEEP_INTERVAL_MILLIS)
-        }
-    }
 
     private val eventHandler = object : Handler(Looper.getMainLooper()) {
         override fun handleMessage(message: Message) {
@@ -56,11 +37,7 @@ class EtaGlyphToyService : Service() {
                     "Glyph message received: event=${event ?: "(null)"}",
                 )
                 if (event == GlyphToy.EVENT_AOD) {
-                    if (etaStore.readSweep().enabled) {
-                        if (!sweepScheduled) startSweepLoop()
-                    } else {
-                        renderEta()
-                    }
+                    renderEta()
                 }
             } else {
                 super.handleMessage(message)
@@ -82,7 +59,7 @@ class EtaGlyphToyService : Service() {
             }.onFailure {
                 DiagnosticLog.record(this@EtaGlyphToyService, "Glyph register failed", it)
             }
-            if (etaStore.readSweep().enabled) startSweepLoop() else renderEta()
+            renderEta()
         }
 
         override fun onServiceDisconnected(componentName: ComponentName?) {
@@ -114,7 +91,6 @@ class EtaGlyphToyService : Service() {
 
     override fun onUnbind(intent: Intent?): Boolean {
         DiagnosticLog.record(this, "Glyph Toy service unbound: action=${intent?.action}")
-        stopSweepLoop()
         eventHandler.removeCallbacksAndMessages(animationToken)
         runCatching { matrixManager?.turnOff() }
             .onFailure { DiagnosticLog.record(this, "Glyph turnOff failed", it) }
@@ -126,7 +102,6 @@ class EtaGlyphToyService : Service() {
 
     override fun onDestroy() {
         DiagnosticLog.record(this, "Glyph Toy service destroyed")
-        stopSweepLoop()
         eventHandler.removeCallbacksAndMessages(animationToken)
         etaStore.unregister(preferenceListener)
         runCatching { matrixManager?.unInit() }
@@ -135,36 +110,8 @@ class EtaGlyphToyService : Service() {
         super.onDestroy()
     }
 
-    private fun syncSweepMode() {
-        if (etaStore.readSweep().enabled) {
-            startSweepLoop()
-        } else {
-            stopSweepLoop()
-            renderEta()
-            DiagnosticLog.record(this, "Number sweep stopped")
-        }
-    }
-
-    private fun startSweepLoop() {
-        stopSweepLoop()
-        sweepMinutes = etaStore.readSweep().minutes
-        sweepScheduled = true
-        eventHandler.post(sweepRunnable)
-        DiagnosticLog.record(this, "Number sweep started at ${sweepMinutes}m")
-    }
-
-    private fun stopSweepLoop() {
-        eventHandler.removeCallbacks(sweepRunnable)
-        sweepScheduled = false
-    }
-
     private fun renderEta() {
         render(etaStore.read().displayMinutes())
-    }
-
-    private fun renderCurrentFrame() {
-        val sweep = etaStore.readSweep()
-        if (sweep.enabled) render(sweep.minutes) else renderEta()
     }
 
     private fun playEssentialKeyAnimation() {
@@ -180,7 +127,7 @@ class EtaGlyphToyService : Service() {
         }
         eventHandler.postDelayed(
             {
-                renderCurrentFrame()
+                renderEta()
                 DiagnosticLog.record(this, "Essential Key animation completed; ETA restored")
             },
             animationToken,
@@ -212,7 +159,6 @@ class EtaGlyphToyService : Service() {
 
     private companion object {
         const val EVENT_DATA_KEY = "data"
-        const val SWEEP_INTERVAL_MILLIS = 3_000L
         const val ANIMATION_FRAME_MILLIS = 70L
     }
 }

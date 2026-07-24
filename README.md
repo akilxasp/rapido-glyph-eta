@@ -47,10 +47,6 @@ Then:
 5. Select the **Rapido ETA** Always-On Glyph Toy.
 6. Use **Test with 7 minutes** before testing a real ride.
 
-To inspect every numeric frame on real hardware, tap **Start 1–99 sweep
-(3 sec each)**. The selected Glyph Toy displays each value in order, loops
-from `99m` back to `1m`, and continues until **Stop number sweep** is tapped.
-
 ## Essential Key refresh
 
 Android may suspend background timers while the phone is locked. For a

@@ -8,7 +8,6 @@ class EtaStateTest {
     @Test
     fun countsDownFromTheStoredArrivalTime() {
         val state = EtaState(
-            minutes = 7,
             etaAtMillis = 7 * 60_000L,
             rawNotification = "",
             updatedAtMillis = 0L,
@@ -23,7 +22,6 @@ class EtaStateTest {
     fun expiresFiveMinutesAfterArrival() {
         val etaAt = 7 * 60_000L
         val state = EtaState(
-            minutes = 7,
             etaAtMillis = etaAt,
             rawNotification = "",
             updatedAtMillis = 0L,

@@ -29,10 +29,8 @@ class MainActivity : Activity() {
     private lateinit var etaMeta: TextView
     private lateinit var notificationState: TextView
     private lateinit var essentialKeyState: TextView
-    private lateinit var sweepState: TextView
     private lateinit var rawText: TextView
     private lateinit var developerPanel: LinearLayout
-    private lateinit var developerToggle: TextView
     private lateinit var store: EtaStore
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,13 +80,12 @@ class MainActivity : Activity() {
         content.addView(setupCard())
 
         content.addView(primaryButton("SEND A 7 MIN TEST") {
-            store.stopSweep()
             store.setTestEta(7)
             DiagnosticLog.record(this, "Manual 7-minute test requested")
             refresh()
         })
 
-        developerToggle = text("DEVELOPER TOOLS  ＋", 13f, Color.BLACK, Typeface.BOLD).apply {
+        val developerToggle = text("DEVELOPER TOOLS  ＋", 13f, Color.BLACK, Typeface.BOLD).apply {
             typeface = Typeface.MONOSPACE
             letterSpacing = 0.08f
             setPadding(dp(4), dp(28), dp(4), dp(16))
@@ -203,18 +200,6 @@ class MainActivity : Activity() {
         setPadding(dp(18), dp(18), dp(18), dp(18))
         background = rounded(SURFACE, 20)
 
-        sweepState = text("", 14f, MUTED)
-        addView(sweepState)
-        addView(secondaryButton("START 1–99 SWEEP") {
-            store.startSweep()
-            DiagnosticLog.record(this@MainActivity, "1–99 matrix sweep requested")
-            refresh()
-        })
-        addView(secondaryButton("STOP SWEEP") {
-            store.stopSweep()
-            DiagnosticLog.record(this@MainActivity, "Matrix sweep stop requested")
-            refresh()
-        })
         addView(secondaryButton("COPY DEBUG DUMP") { copyDebugDump() })
         addView(secondaryButton("REFRESH DIAGNOSTICS") { refresh() })
         addView(label("LATEST RAPIDO PAYLOAD", MUTED).apply {
@@ -305,12 +290,12 @@ class MainActivity : Activity() {
 
     private fun openNotificationAccessSettings() {
         val component = ComponentName(this, RapidoNotificationListener::class.java)
-        openSettings(
-            primary = Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS).putExtra(
+        openFirstAvailable(
+            Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS).putExtra(
                 Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME,
                 component.flattenToString(),
             ),
-            fallback = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS),
+            Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS),
         )
     }
 
@@ -325,17 +310,13 @@ class MainActivity : Activity() {
 
     private fun openEssentialKeySettings() {
         val component = ComponentName(this, EssentialKeyAccessibilityService::class.java)
-        openSettings(
-            primary = Intent(ACTION_ACCESSIBILITY_DETAILS_SETTINGS).putExtra(
+        openFirstAvailable(
+            Intent(ACTION_ACCESSIBILITY_DETAILS_SETTINGS).putExtra(
                 Intent.EXTRA_COMPONENT_NAME,
                 component.flattenToString(),
             ),
-            fallback = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS),
+            Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS),
         )
-    }
-
-    private fun openSettings(primary: Intent, fallback: Intent) {
-        openFirstAvailable(primary, fallback)
     }
 
     private fun openFirstAvailable(vararg intents: Intent?) {
@@ -387,12 +368,6 @@ class MainActivity : Activity() {
             if (accessibilityAccess) "ON" else "OFF",
         )
 
-        val sweep = store.readSweep()
-        sweepState.text = if (sweep.enabled) {
-            "NUMBER SWEEP  ·  RUNNING  ·  ${sweep.minutes} MIN"
-        } else {
-            "NUMBER SWEEP  ·  STOPPED"
-        }
         rawText.text = state.rawNotification.ifBlank {
             "No Rapido notification captured yet."
         }

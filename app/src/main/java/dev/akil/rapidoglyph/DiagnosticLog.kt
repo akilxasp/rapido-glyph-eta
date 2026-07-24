@@ -40,7 +40,6 @@ object DiagnosticLog {
 
     fun dump(context: Context, etaStore: EtaStore): String {
         val state = etaStore.read()
-        val sweep = etaStore.readSweep()
         val notificationAccess = Settings.Secure.getString(
             context.contentResolver,
             "enabled_notification_listeners",
@@ -56,10 +55,6 @@ object DiagnosticLog {
             val info = context.packageManager.getPackageInfo(context.packageName, 0)
             "${info.versionName} (${info.longVersionCode})"
         }.getOrElse { "unknown (${it.javaClass.simpleName})" }
-        val glyphSdk = runCatching {
-            Class.forName("com.nothing.ketchum.GlyphMatrixManager")
-            "present"
-        }.getOrElse { "missing (${it.javaClass.simpleName})" }
         val events = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
             .getString(KEY_EVENTS, "")
             .orEmpty()
@@ -76,13 +71,9 @@ object DiagnosticLog {
             build=${Build.DISPLAY}
             notificationAccess=$notificationAccess
             essentialKeyAccessibility=$accessibilityAccess
-            glyphSdk=$glyphSdk
-            storedMinutes=${state.minutes}
             displayMinutes=${state.displayMinutes()}
             etaAtMillis=${state.etaAtMillis}
             updatedAtMillis=${state.updatedAtMillis}
-            sweepEnabled=${sweep.enabled}
-            sweepMinutes=${sweep.minutes}
 
             --- latest Rapido notification payload ---
             ${state.rawNotification.ifBlank { "(none)" }}
