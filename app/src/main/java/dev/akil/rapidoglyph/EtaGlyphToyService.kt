@@ -18,11 +18,30 @@ import com.nothing.ketchum.GlyphToy
 class EtaGlyphToyService : Service() {
     private var matrixManager: GlyphMatrixManager? = null
     private lateinit var etaStore: EtaStore
+    private var sweepScheduled = false
+    private var sweepMinutes = 1
 
     private val preferenceListener =
         SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == EtaStore.KEY_MINUTES || key == EtaStore.KEY_ETA_AT) render()
+            when (key) {
+                EtaStore.KEY_SWEEP_ENABLED -> syncSweepMode()
+                EtaStore.KEY_MINUTES, EtaStore.KEY_ETA_AT ->
+                    if (!etaStore.readSweep().enabled) renderEta()
+            }
         }
+
+    private val sweepRunnable = object : Runnable {
+        override fun run() {
+            if (!etaStore.readSweep().enabled) {
+                sweepScheduled = false
+                return
+            }
+            etaStore.setSweepMinutes(sweepMinutes)
+            render(sweepMinutes)
+            sweepMinutes = EtaStore.nextSweepMinute(sweepMinutes)
+            eventHandler.postDelayed(this, SWEEP_INTERVAL_MILLIS)
+        }
+    }
 
     private val eventHandler = object : Handler(Looper.getMainLooper()) {
         override fun handleMessage(message: Message) {
@@ -32,7 +51,13 @@ class EtaGlyphToyService : Service() {
                     this@EtaGlyphToyService,
                     "Glyph message received: event=${event ?: "(null)"}",
                 )
-                if (event == GlyphToy.EVENT_AOD) render()
+                if (event == GlyphToy.EVENT_AOD) {
+                    if (etaStore.readSweep().enabled) {
+                        if (!sweepScheduled) startSweepLoop()
+                    } else {
+                        renderEta()
+                    }
+                }
             } else {
                 super.handleMessage(message)
             }
@@ -53,7 +78,7 @@ class EtaGlyphToyService : Service() {
             }.onFailure {
                 DiagnosticLog.record(this@EtaGlyphToyService, "Glyph register failed", it)
             }
-            render()
+            if (etaStore.readSweep().enabled) startSweepLoop() else renderEta()
         }
 
         override fun onServiceDisconnected(componentName: ComponentName?) {
@@ -85,6 +110,7 @@ class EtaGlyphToyService : Service() {
 
     override fun onUnbind(intent: Intent?): Boolean {
         DiagnosticLog.record(this, "Glyph Toy service unbound: action=${intent?.action}")
+        stopSweepLoop()
         runCatching { matrixManager?.turnOff() }
             .onFailure { DiagnosticLog.record(this, "Glyph turnOff failed", it) }
         runCatching { matrixManager?.unInit() }
@@ -95,6 +121,7 @@ class EtaGlyphToyService : Service() {
 
     override fun onDestroy() {
         DiagnosticLog.record(this, "Glyph Toy service destroyed")
+        stopSweepLoop()
         etaStore.unregister(preferenceListener)
         runCatching { matrixManager?.unInit() }
             .onFailure { DiagnosticLog.record(this, "Glyph destroy unInit failed", it) }
@@ -102,8 +129,34 @@ class EtaGlyphToyService : Service() {
         super.onDestroy()
     }
 
-    private fun render() {
-        val minutes = etaStore.read().displayMinutes()
+    private fun syncSweepMode() {
+        if (etaStore.readSweep().enabled) {
+            startSweepLoop()
+        } else {
+            stopSweepLoop()
+            renderEta()
+            DiagnosticLog.record(this, "Number sweep stopped")
+        }
+    }
+
+    private fun startSweepLoop() {
+        stopSweepLoop()
+        sweepMinutes = etaStore.readSweep().minutes
+        sweepScheduled = true
+        eventHandler.post(sweepRunnable)
+        DiagnosticLog.record(this, "Number sweep started at ${sweepMinutes}m")
+    }
+
+    private fun stopSweepLoop() {
+        eventHandler.removeCallbacks(sweepRunnable)
+        sweepScheduled = false
+    }
+
+    private fun renderEta() {
+        render(etaStore.read().displayMinutes())
+    }
+
+    private fun render(minutes: Int?) {
         val manager = matrixManager
         if (manager == null) {
             DiagnosticLog.record(this, "Render skipped: manager=null minutes=$minutes")
@@ -126,5 +179,6 @@ class EtaGlyphToyService : Service() {
 
     private companion object {
         const val EVENT_DATA_KEY = "data"
+        const val SWEEP_INTERVAL_MILLIS = 3_000L
     }
 }
