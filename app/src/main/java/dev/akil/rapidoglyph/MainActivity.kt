@@ -125,28 +125,21 @@ class MainActivity : Activity() {
             number = "01",
             title = "Notification access",
             description = "Read Rapido's live pickup ETA",
-            onClick = { startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) },
+            onClick = { openNotificationAccessSettings() },
         ).also { notificationState = it })
         addView(divider())
         addView(setupRow(
             number = "02",
             title = "Select Glyph Toy",
             description = "Choose Rapido ETA in Nothing settings",
-            onClick = {
-                runCatching {
-                    startActivity(Intent().setComponent(GLYPH_TOY_MANAGER))
-                }.onFailure {
-                    Toast.makeText(this@MainActivity, "Could not open Glyph Toy settings", Toast.LENGTH_LONG)
-                        .show()
-                }
-            },
+            onClick = { openGlyphToySettings() },
         ))
         addView(divider())
         addView(setupRow(
             number = "03",
             title = "Essential Key refresh",
             description = "Press the key to animate and refresh",
-            onClick = { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
+            onClick = { openEssentialKeySettings() },
         ).also { essentialKeyState = it })
     }.apply {
         layoutParams = LinearLayout.LayoutParams(
@@ -184,6 +177,7 @@ class MainActivity : Activity() {
     ): String = buildString {
         append(number).append("    ").append(title)
         if (state != null) append("  ·  ").append(state)
+        append("  ›")
         append("\n       ").append(description)
     }
 
@@ -288,6 +282,45 @@ class MainActivity : Activity() {
     private fun selectableItemBackground() =
         getDrawable(android.R.drawable.list_selector_background)
 
+    private fun openNotificationAccessSettings() {
+        val component = ComponentName(this, RapidoNotificationListener::class.java)
+        openSettings(
+            primary = Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS).putExtra(
+                Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME,
+                component.flattenToString(),
+            ),
+            fallback = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS),
+        )
+    }
+
+    private fun openGlyphToySettings() {
+        openSettings(
+            primary = Intent().setComponent(GLYPH_TOY_MANAGER),
+            fallback = Intent(Settings.ACTION_SETTINGS),
+        )
+    }
+
+    private fun openEssentialKeySettings() {
+        val component = ComponentName(this, EssentialKeyAccessibilityService::class.java)
+        openSettings(
+            primary = Intent(ACTION_ACCESSIBILITY_DETAILS_SETTINGS).putExtra(
+                Intent.EXTRA_COMPONENT_NAME,
+                component.flattenToString(),
+            ),
+            fallback = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS),
+        )
+    }
+
+    private fun openSettings(primary: Intent, fallback: Intent) {
+        runCatching {
+            startActivity(primary)
+        }.recoverCatching {
+            startActivity(fallback)
+        }.onFailure {
+            Toast.makeText(this, "Could not open system settings", Toast.LENGTH_LONG).show()
+        }
+    }
+
     private fun copyDebugDump() {
         val dump = DiagnosticLog.dump(this, store)
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -355,6 +388,8 @@ class MainActivity : Activity() {
         const val SURFACE = 0xFFF2F2F2.toInt()
         const val STROKE = 0xFFD8D8D8.toInt()
         const val RED = 0xFFD71920.toInt()
+        const val ACTION_ACCESSIBILITY_DETAILS_SETTINGS =
+            "android.settings.ACCESSIBILITY_DETAILS_SETTINGS"
 
         val GLYPH_TOY_MANAGER = ComponentName(
             "com.nothing.thirdparty",
