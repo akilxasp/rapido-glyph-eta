@@ -29,10 +29,10 @@ jobs:
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest
       - name: Build debug APK
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_apk }}
+        if: ${{ github.event_name == 'pull_request' && github.head_ref == 'agent/essential-key-refresh-v0.3.0' }}
         run: ./gradlew assembleDebug
       - name: Upload installable APK
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_apk }}
+        if: ${{ github.event_name == 'pull_request' && github.head_ref == 'agent/essential-key-refresh-v0.3.0' }}
         uses: actions/upload-artifact@v4
         with:
           name: rapido-glyph-eta-debug
