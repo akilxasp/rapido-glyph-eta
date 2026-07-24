@@ -23,6 +23,11 @@ data class EtaState(
     }
 }
 
+data class SweepState(
+    val enabled: Boolean,
+    val minutes: Int,
+)
+
 class EtaStore(context: Context) {
     private val preferences =
         context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
@@ -54,6 +59,26 @@ class EtaStore(context: Context) {
         save(ParsedEta(minutes, "Manual test"), "Manual test ETA: $minutes min")
     }
 
+    fun readSweep(): SweepState = SweepState(
+        enabled = preferences.getBoolean(KEY_SWEEP_ENABLED, false),
+        minutes = preferences.getInt(KEY_SWEEP_MINUTES, 1).coerceIn(1, 99),
+    )
+
+    fun startSweep() {
+        preferences.edit()
+            .putInt(KEY_SWEEP_MINUTES, 1)
+            .putBoolean(KEY_SWEEP_ENABLED, true)
+            .apply()
+    }
+
+    fun setSweepMinutes(minutes: Int) {
+        preferences.edit().putInt(KEY_SWEEP_MINUTES, minutes.coerceIn(1, 99)).apply()
+    }
+
+    fun stopSweep() {
+        preferences.edit().putBoolean(KEY_SWEEP_ENABLED, false).apply()
+    }
+
     fun clear() {
         preferences.edit()
             .putInt(KEY_MINUTES, NO_ETA)
@@ -74,6 +99,12 @@ class EtaStore(context: Context) {
     companion object {
         const val KEY_MINUTES = "eta_minutes"
         const val KEY_ETA_AT = "eta_at"
+        const val KEY_SWEEP_ENABLED = "sweep_enabled"
+        const val KEY_SWEEP_MINUTES = "sweep_minutes"
+
+        fun nextSweepMinute(minutes: Int): Int =
+            if (minutes in 1 until 99) minutes + 1 else 1
+
         private const val KEY_RAW = "raw_notification"
         private const val KEY_UPDATED_AT = "updated_at"
         private const val PREFERENCES_NAME = "rapido_eta"
