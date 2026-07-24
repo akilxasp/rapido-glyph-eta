@@ -12,5 +12,16 @@ class MatrixRendererTest {
         assertTrue(frame.any { it == 255 })
         assertTrue(frame.all { it == 0 || it == 255 })
     }
-}
 
+    @Test
+    fun everySweepValueProducesAUniqueValidFrame() {
+        val frames = (1..99).map(MatrixRenderer::eta)
+
+        frames.forEach { frame ->
+            assertEquals(169, frame.size)
+            assertTrue(frame.any { it == 255 })
+            assertTrue(frame.all { it == 0 || it == 255 })
+        }
+        assertEquals(99, frames.map(IntArray::toList).distinct().size)
+    }
+}
