@@ -37,5 +37,36 @@ object MatrixRenderer {
         }
         return frame
     }
-}
 
+    fun essentialKeyAnimation(): List<IntArray> {
+        val topPath = buildList {
+            for (y in 6 downTo 0) add(12 to y)
+            for (x in 11 downTo 0) add(x to 0)
+            for (y in 1..6) add(0 to y)
+        }
+        val bottomPath = buildList {
+            for (y in 6..12) add(12 to y)
+            for (x in 11 downTo 0) add(x to 12)
+            for (y in 11 downTo 6) add(0 to y)
+        }
+        val trailBrightness = intArrayOf(255, 176, 104, 48)
+        val movement = topPath.indices.map { step ->
+            IntArray(SIZE * SIZE).also { frame ->
+                trailBrightness.forEachIndexed { offset, brightness ->
+                    val pathIndex = step - offset
+                    if (pathIndex >= 0) {
+                        listOf(topPath[pathIndex], bottomPath[pathIndex]).forEach { (x, y) ->
+                            val index = y * SIZE + x
+                            frame[index] = maxOf(frame[index], brightness)
+                        }
+                    }
+                }
+            }
+        }
+        val finalFrame = movement.last()
+        val fade = listOf(0.65f, 0.35f, 0.15f, 0f).map { factor ->
+            IntArray(finalFrame.size) { index -> (finalFrame[index] * factor).toInt() }
+        }
+        return movement + fade
+    }
+}
