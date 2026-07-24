@@ -6,8 +6,12 @@ import android.content.ClipboardManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.provider.Settings
+import android.view.Gravity
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
@@ -18,8 +22,14 @@ import java.text.DateFormat
 import java.util.Date
 
 class MainActivity : Activity() {
-    private lateinit var statusText: TextView
+    private lateinit var etaValue: TextView
+    private lateinit var etaMeta: TextView
+    private lateinit var notificationState: TextView
+    private lateinit var essentialKeyState: TextView
+    private lateinit var sweepState: TextView
     private lateinit var rawText: TextView
+    private lateinit var developerPanel: LinearLayout
+    private lateinit var developerToggle: TextView
     private lateinit var store: EtaStore
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,67 +46,247 @@ class MainActivity : Activity() {
     private fun buildContent(): View {
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(48, 56, 48, 56)
+            setPadding(dp(24), dp(30), dp(24), dp(40))
         }
 
-        content.addView(TextView(this).apply {
-            text = "Rapido Glyph ETA"
-            textSize = 28f
+        content.addView(label("NOTHING × RAPIDO", RED))
+        content.addView(text("GLYPH ETA", 36f, Color.BLACK, Typeface.BOLD).apply {
+            typeface = Typeface.MONOSPACE
+            letterSpacing = 0.06f
+            setPadding(0, dp(5), 0, 0)
         })
-        content.addView(TextView(this).apply {
-            text = "Reads Rapido notifications and renders the pickup ETA on the 13×13 Glyph Matrix."
-            textSize = 16f
-            setPadding(0, 16, 0, 24)
+        content.addView(text(
+            "Pickup time, at a glance—without unlocking your phone.",
+            16f,
+            MUTED,
+        ).apply {
+            setPadding(0, dp(8), 0, dp(24))
         })
 
-        statusText = TextView(this).apply { textSize = 18f }
-        content.addView(statusText)
+        content.addView(etaCard())
+        content.addView(sectionTitle("SETUP"))
+        content.addView(setupCard())
 
-        content.addView(button("1. Grant notification access") {
-            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-        })
-        content.addView(button("2. Select the Rapido ETA Glyph Toy") {
-            runCatching {
-                startActivity(Intent().setComponent(GLYPH_TOY_MANAGER))
-            }.onFailure {
-                statusText.text = "Could not open Glyph Toy settings: ${it.message}"
-            }
-        })
-        content.addView(button("3. Enable Essential Key refresh") {
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        })
-        content.addView(button("Test with 7 minutes") {
+        content.addView(primaryButton("SEND A 7 MIN TEST") {
             store.stopSweep()
             store.setTestEta(7)
             DiagnosticLog.record(this, "Manual 7-minute test requested")
             refresh()
         })
-        content.addView(button("Start 1–99 sweep (3 sec each)") {
-            store.startSweep()
-            DiagnosticLog.record(this, "1–99 matrix sweep requested")
-            refresh()
-        })
-        content.addView(button("Stop number sweep") {
-            store.stopSweep()
-            DiagnosticLog.record(this, "Matrix sweep stop requested")
-            refresh()
-        })
-        content.addView(button("Refresh diagnostics") { refresh() })
-        content.addView(button("Copy debug dump") { copyDebugDump() })
 
-        content.addView(TextView(this).apply {
-            text = "Latest Rapido notification payload"
-            textSize = 18f
-            setPadding(0, 32, 0, 8)
+        developerToggle = text("DEVELOPER TOOLS  ＋", 13f, Color.BLACK, Typeface.BOLD).apply {
+            typeface = Typeface.MONOSPACE
+            letterSpacing = 0.08f
+            setPadding(dp(4), dp(28), dp(4), dp(16))
+            setOnClickListener {
+                val opening = developerPanel.visibility != View.VISIBLE
+                developerPanel.visibility = if (opening) View.VISIBLE else View.GONE
+                text = if (opening) "DEVELOPER TOOLS  −" else "DEVELOPER TOOLS  ＋"
+            }
+        }
+        content.addView(developerToggle)
+        developerPanel = developerPanel()
+        content.addView(developerPanel)
+
+        return ScrollView(this).apply {
+            setBackgroundColor(Color.WHITE)
+            isFillViewport = true
+            addView(content)
+        }
+    }
+
+    private fun etaCard() = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(dp(24), dp(22), dp(24), dp(22))
+        background = rounded(BLACK, 28)
+
+        addView(label("LIVE PICKUP", Color.WHITE))
+        etaValue = text("—", 52f, Color.WHITE, Typeface.BOLD).apply {
+            typeface = Typeface.MONOSPACE
+            letterSpacing = -0.04f
+            setPadding(0, dp(8), 0, dp(4))
+        }
+        addView(etaValue)
+        etaMeta = text("Waiting for a Rapido ride", 14f, ON_DARK)
+        addView(etaMeta)
+    }.apply {
+        layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { bottomMargin = dp(28) }
+    }
+
+    private fun setupCard() = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(dp(18), dp(4), dp(18), dp(4))
+        background = rounded(SURFACE, 24)
+
+        addView(setupRow(
+            number = "01",
+            title = "Notification access",
+            description = "Read Rapido's live pickup ETA",
+            onClick = { startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) },
+        ).also { notificationState = it })
+        addView(divider())
+        addView(setupRow(
+            number = "02",
+            title = "Select Glyph Toy",
+            description = "Choose Rapido ETA in Nothing settings",
+            onClick = {
+                runCatching {
+                    startActivity(Intent().setComponent(GLYPH_TOY_MANAGER))
+                }.onFailure {
+                    Toast.makeText(this@MainActivity, "Could not open Glyph Toy settings", Toast.LENGTH_LONG)
+                        .show()
+                }
+            },
+        ))
+        addView(divider())
+        addView(setupRow(
+            number = "03",
+            title = "Essential Key refresh",
+            description = "Press the key to animate and refresh",
+            onClick = { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
+        ).also { essentialKeyState = it })
+    }.apply {
+        layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { bottomMargin = dp(18) }
+    }
+
+    private fun setupRow(
+        number: String,
+        title: String,
+        description: String,
+        onClick: () -> Unit,
+    ) = TextView(this).apply {
+        tag = "$number|$title|$description"
+        text = setupRowText(number, title, description, null)
+        textSize = 15f
+        setTextColor(Color.BLACK)
+        typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+        gravity = Gravity.CENTER_VERTICAL
+        setLineSpacing(dp(3).toFloat(), 1f)
+        setPadding(0, dp(17), dp(4), dp(17))
+        minHeight = dp(76)
+        isClickable = true
+        isFocusable = true
+        foreground = selectableItemBackground()
+        setOnClickListener { onClick() }
+    }
+
+    private fun setupRowText(
+        number: String,
+        title: String,
+        description: String,
+        state: String?,
+    ): String = buildString {
+        append(number).append("    ").append(title)
+        if (state != null) append("  ·  ").append(state)
+        append("\n       ").append(description)
+    }
+
+    private fun developerPanel() = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        visibility = View.GONE
+        setPadding(dp(18), dp(18), dp(18), dp(18))
+        background = rounded(SURFACE, 20)
+
+        sweepState = text("", 14f, MUTED)
+        addView(sweepState)
+        addView(secondaryButton("START 1–99 SWEEP") {
+            store.startSweep()
+            DiagnosticLog.record(this@MainActivity, "1–99 matrix sweep requested")
+            refresh()
         })
-        rawText = TextView(this).apply {
-            textSize = 14f
+        addView(secondaryButton("STOP SWEEP") {
+            store.stopSweep()
+            DiagnosticLog.record(this@MainActivity, "Matrix sweep stop requested")
+            refresh()
+        })
+        addView(secondaryButton("COPY DEBUG DUMP") { copyDebugDump() })
+        addView(secondaryButton("REFRESH DIAGNOSTICS") { refresh() })
+        addView(label("LATEST RAPIDO PAYLOAD", MUTED).apply {
+            setPadding(0, dp(22), 0, dp(8))
+        })
+        rawText = text("", 13f, MUTED).apply {
+            typeface = Typeface.MONOSPACE
             setTextIsSelectable(true)
         }
-        content.addView(rawText)
-
-        return ScrollView(this).apply { addView(content) }
+        addView(rawText)
     }
+
+    private fun sectionTitle(value: String) = label(value, Color.BLACK).apply {
+        setPadding(dp(4), 0, 0, dp(12))
+    }
+
+    private fun primaryButton(label: String, action: () -> Unit) =
+        Button(this).apply {
+            text = label
+            textSize = 14f
+            letterSpacing = 0.08f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.MONOSPACE
+            background = rounded(BLACK, 18)
+            minHeight = dp(58)
+            stateListAnimator = null
+            setOnClickListener { action() }
+        }
+
+    private fun secondaryButton(label: String, action: () -> Unit) =
+        Button(this).apply {
+            text = label
+            textSize = 13f
+            letterSpacing = 0.05f
+            setTextColor(Color.BLACK)
+            typeface = Typeface.MONOSPACE
+            background = rounded(Color.WHITE, 14, STROKE)
+            minHeight = dp(50)
+            stateListAnimator = null
+            setOnClickListener { action() }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = dp(10) }
+        }
+
+    private fun label(value: String, color: Int) =
+        text(value, 12f, color, Typeface.BOLD).apply {
+            typeface = Typeface.MONOSPACE
+            letterSpacing = 0.12f
+        }
+
+    private fun text(
+        value: String,
+        size: Float,
+        color: Int,
+        style: Int = Typeface.NORMAL,
+    ) = TextView(this).apply {
+        text = value
+        textSize = size
+        setTextColor(color)
+        typeface = Typeface.create("sans-serif", style)
+    }
+
+    private fun divider() = View(this).apply {
+        setBackgroundColor(STROKE)
+        layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            dp(1),
+        )
+    }
+
+    private fun rounded(fill: Int, radiusDp: Int, stroke: Int? = null) =
+        GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            setColor(fill)
+            cornerRadius = dp(radiusDp).toFloat()
+            stroke?.let { setStroke(dp(1), it) }
+        }
+
+    private fun selectableItemBackground() =
+        getDrawable(android.R.drawable.list_selector_background)
 
     private fun copyDebugDump() {
         val dump = DiagnosticLog.dump(this, store)
@@ -106,13 +296,6 @@ class MainActivity : Activity() {
         Toast.makeText(this, "Debug dump copied — paste it into the chat", Toast.LENGTH_LONG)
             .show()
     }
-
-    private fun button(label: String, action: () -> Unit) =
-        Button(this).apply {
-            text = label
-            isAllCaps = false
-            setOnClickListener { action() }
-        }
 
     private fun refresh() {
         val state = store.read()
@@ -128,26 +311,51 @@ class MainActivity : Activity() {
                 EssentialKeyAccessibilityService::class.java.name
         }
 
-        val eta = state.displayMinutes()?.let { "$it min" } ?: "waiting for Rapido"
-        val sweep = store.readSweep()
-        val sweepStatus = if (sweep.enabled) {
-            "running (${sweep.minutes}m, 3 sec each)"
-        } else {
-            "stopped"
-        }
+        val minutes = state.displayMinutes()
+        etaValue.text = minutes?.let { "$it MIN" } ?: "—"
         val updated = state.updatedAtMillis.takeIf { it > 0 }?.let {
-            DateFormat.getDateTimeInstance().format(Date(it))
-        } ?: "never"
-        statusText.text =
-            "Notification access: ${if (notificationAccess) "on" else "off"}\n" +
-                "Essential Key refresh: ${if (accessibilityAccess) "on" else "off"}\n" +
-                "ETA: $eta\nSweep: $sweepStatus\nUpdated: $updated"
+            DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(it))
+        }
+        etaMeta.text = when {
+            minutes != null && updated != null -> "Rapido pickup  ·  Updated $updated"
+            else -> "Waiting for a Rapido ride"
+        }
+
+        updateSetupState(
+            notificationState,
+            if (notificationAccess) "ON" else "OFF",
+        )
+        updateSetupState(
+            essentialKeyState,
+            if (accessibilityAccess) "ON" else "OFF",
+        )
+
+        val sweep = store.readSweep()
+        sweepState.text = if (sweep.enabled) {
+            "NUMBER SWEEP  ·  RUNNING  ·  ${sweep.minutes} MIN"
+        } else {
+            "NUMBER SWEEP  ·  STOPPED"
+        }
         rawText.text = state.rawNotification.ifBlank {
-            "No Rapido notification captured yet. Keep this installed, grant notification access, then book a ride."
+            "No Rapido notification captured yet."
         }
     }
 
+    private fun updateSetupState(view: TextView, state: String) {
+        val parts = (view.tag as String).split('|')
+        view.text = setupRowText(parts[0], parts[1], parts[2], state)
+    }
+
+    private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
+
     private companion object {
+        const val BLACK = 0xFF111111.toInt()
+        const val MUTED = 0xFF696969.toInt()
+        const val ON_DARK = 0xFFB7B7B7.toInt()
+        const val SURFACE = 0xFFF2F2F2.toInt()
+        const val STROKE = 0xFFD8D8D8.toInt()
+        const val RED = 0xFFD71920.toInt()
+
         val GLYPH_TOY_MANAGER = ComponentName(
             "com.nothing.thirdparty",
             "com.nothing.thirdparty.matrix.toys.manager.ToysManagerActivity",
