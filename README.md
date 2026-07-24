@@ -57,8 +57,9 @@ Android may suspend background timers while the phone is locked. For a
 user-triggered refresh without holding a wake lock, enable **Essential Key
 Glyph refresh** under Android Accessibility settings. A press of the Nothing
 Essential Key resubmits the current ETA frame.
-Before restoring the ETA, a short confirmation animation sends two fading
-trails from the center-right edge around the perimeter to the center-left edge.
+Before restoring the ETA, a short circular confirmation animation sends two
+fading trails from the ring's rightmost point around its upper and lower arcs
+to the leftmost point.
 
 The accessibility service requests hardware key filtering only, cannot
 retrieve window content, does not consume the key event, and does not use the
