@@ -8,11 +8,14 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.StateListDrawable
 import android.os.Bundle
 import android.provider.Settings
 import android.view.Gravity
 import android.view.View
+import android.view.WindowInsets
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -46,13 +49,24 @@ class MainActivity : Activity() {
     private fun buildContent(): View {
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(24), dp(30), dp(24), dp(40))
+            setPadding(dp(24), dp(24), dp(24), dp(40))
+            setOnApplyWindowInsetsListener { view, windowInsets ->
+                val systemBars = windowInsets.getInsets(WindowInsets.Type.systemBars())
+                view.setPadding(
+                    dp(24),
+                    systemBars.top + dp(24),
+                    dp(24),
+                    systemBars.bottom + dp(40),
+                )
+                windowInsets
+            }
         }
 
         content.addView(label("NOTHING × RAPIDO", RED))
         content.addView(text("GLYPH ETA", 36f, Color.BLACK, Typeface.BOLD).apply {
-            typeface = Typeface.MONOSPACE
-            letterSpacing = 0.06f
+            typeface = resources.getFont(R.font.doto)
+            fontVariationSettings = "'ROND' 100, 'wght' 700"
+            letterSpacing = 0.02f
             setPadding(0, dp(5), 0, 0)
         })
         content.addView(text(
@@ -92,6 +106,7 @@ class MainActivity : Activity() {
             setBackgroundColor(Color.WHITE)
             isFillViewport = true
             addView(content)
+            content.requestApplyInsets()
         }
     }
 
@@ -118,8 +133,9 @@ class MainActivity : Activity() {
 
     private fun setupCard() = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(dp(18), dp(4), dp(18), dp(4))
+        setPadding(0, 0, 0, 0)
         background = rounded(SURFACE, 24)
+        clipToOutline = true
 
         addView(setupRow(
             number = "01",
@@ -161,11 +177,11 @@ class MainActivity : Activity() {
         typeface = Typeface.create("sans-serif", Typeface.NORMAL)
         gravity = Gravity.CENTER_VERTICAL
         setLineSpacing(dp(3).toFloat(), 1f)
-        setPadding(0, dp(17), dp(4), dp(17))
+        setPadding(dp(18), dp(17), dp(18), dp(17))
         minHeight = dp(76)
         isClickable = true
         isFocusable = true
-        foreground = selectableItemBackground()
+        background = setupRowBackground()
         setOnClickListener { onClick() }
     }
 
@@ -279,8 +295,13 @@ class MainActivity : Activity() {
             stroke?.let { setStroke(dp(1), it) }
         }
 
-    private fun selectableItemBackground() =
-        getDrawable(android.R.drawable.list_selector_background)
+    private fun setupRowBackground() = StateListDrawable().apply {
+        addState(
+            intArrayOf(android.R.attr.state_pressed),
+            ColorDrawable(ROW_PRESSED),
+        )
+        addState(intArrayOf(), ColorDrawable(Color.TRANSPARENT))
+    }
 
     private fun openNotificationAccessSettings() {
         val component = ComponentName(this, RapidoNotificationListener::class.java)
@@ -294,9 +315,11 @@ class MainActivity : Activity() {
     }
 
     private fun openGlyphToySettings() {
-        openSettings(
-            primary = Intent().setComponent(GLYPH_TOY_MANAGER),
-            fallback = Intent(Settings.ACTION_SETTINGS),
+        val packageLaunch = packageManager.getLaunchIntentForPackage(GLYPH_TOY_PACKAGE)
+        openFirstAvailable(
+            Intent().setComponent(GLYPH_TOY_MANAGER),
+            packageLaunch,
+            Intent(Settings.ACTION_SETTINGS),
         )
     }
 
@@ -312,13 +335,14 @@ class MainActivity : Activity() {
     }
 
     private fun openSettings(primary: Intent, fallback: Intent) {
-        runCatching {
-            startActivity(primary)
-        }.recoverCatching {
-            startActivity(fallback)
-        }.onFailure {
-            Toast.makeText(this, "Could not open system settings", Toast.LENGTH_LONG).show()
+        openFirstAvailable(primary, fallback)
+    }
+
+    private fun openFirstAvailable(vararg intents: Intent?) {
+        intents.filterNotNull().forEach { intent ->
+            if (runCatching { startActivity(intent) }.isSuccess) return
         }
+        Toast.makeText(this, "Could not open system settings", Toast.LENGTH_LONG).show()
     }
 
     private fun copyDebugDump() {
@@ -387,12 +411,15 @@ class MainActivity : Activity() {
         const val ON_DARK = 0xFFB7B7B7.toInt()
         const val SURFACE = 0xFFF2F2F2.toInt()
         const val STROKE = 0xFFD8D8D8.toInt()
+        const val ROW_PRESSED = 0xFFE2E2E2.toInt()
         const val RED = 0xFFD71920.toInt()
         const val ACTION_ACCESSIBILITY_DETAILS_SETTINGS =
             "android.settings.ACCESSIBILITY_DETAILS_SETTINGS"
 
+        const val GLYPH_TOY_PACKAGE = "com.nothing.thirdparty"
+
         val GLYPH_TOY_MANAGER = ComponentName(
-            "com.nothing.thirdparty",
+            GLYPH_TOY_PACKAGE,
             "com.nothing.thirdparty.matrix.toys.manager.ToysManagerActivity",
         )
     }

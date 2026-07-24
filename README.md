@@ -109,5 +109,9 @@ Next:
 This repository's source is MIT licensed. Nothing's proprietary Glyph Matrix
 SDK is not included and remains subject to [Nothing's SDK licence][gdk-license].
 
+The bundled Doto title font is provided by Google Fonts under the SIL Open
+Font License 1.1. Its licence text is included in
+`app/src/main/res/raw/doto_ofl.txt`.
+
 [gdk]: https://github.com/Nothing-Developer-Programme/GlyphMatrix-Developer-Kit
 [gdk-license]: https://github.com/Nothing-Developer-Programme/GlyphMatrix-Developer-Kit/blob/main/LICENSE.md
