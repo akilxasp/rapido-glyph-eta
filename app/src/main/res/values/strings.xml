@@ -1,7 +1,8 @@
 <resources>
     <string name="app_name">Rapido Glyph ETA</string>
     <string name="notification_listener_label">Rapido ETA notification access</string>
+    <string name="essential_key_accessibility_label">Essential Key Glyph refresh</string>
+    <string name="essential_key_accessibility_description">Listens only for the Essential Key hardware event and refreshes the current Rapido ETA on the Glyph Matrix. It cannot read screen content.</string>
     <string name="toy_name">Rapido ETA</string>
     <string name="toy_summary">Shows your Rapido pickup ETA on the Glyph Matrix</string>
 </resources>
-
