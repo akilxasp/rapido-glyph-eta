@@ -25,6 +25,10 @@ class EtaGlyphToyService : Service() {
         SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             when (key) {
                 EtaStore.KEY_SWEEP_ENABLED -> syncSweepMode()
+                EtaStore.KEY_FORCE_REFRESH -> {
+                    renderCurrentFrame()
+                    DiagnosticLog.record(this, "Forced Glyph refresh processed")
+                }
                 EtaStore.KEY_MINUTES, EtaStore.KEY_ETA_AT ->
                     if (!etaStore.readSweep().enabled) renderEta()
             }
@@ -154,6 +158,11 @@ class EtaGlyphToyService : Service() {
 
     private fun renderEta() {
         render(etaStore.read().displayMinutes())
+    }
+
+    private fun renderCurrentFrame() {
+        val sweep = etaStore.readSweep()
+        if (sweep.enabled) render(sweep.minutes) else renderEta()
     }
 
     private fun render(minutes: Int?) {
