@@ -39,16 +39,28 @@ object MatrixRenderer {
     }
 
     fun essentialKeyAnimation(): List<IntArray> {
-        val topPath = buildList {
-            for (y in 6 downTo 0) add(12 to y)
-            for (x in 11 downTo 0) add(x to 0)
-            for (y in 1..6) add(0 to y)
-        }
-        val bottomPath = buildList {
-            for (y in 6..12) add(12 to y)
-            for (x in 11 downTo 0) add(x to 12)
-            for (y in 11 downTo 6) add(0 to y)
-        }
+        val topPath = listOf(
+            12 to 6,
+            12 to 5,
+            12 to 4,
+            11 to 3,
+            11 to 2,
+            10 to 1,
+            9 to 1,
+            8 to 0,
+            7 to 0,
+            6 to 0,
+            5 to 0,
+            4 to 0,
+            3 to 1,
+            2 to 1,
+            1 to 2,
+            1 to 3,
+            0 to 4,
+            0 to 5,
+            0 to 6,
+        )
+        val bottomPath = topPath.map { (x, y) -> x to SIZE - 1 - y }
         val trailBrightness = intArrayOf(255, 176, 104, 48)
         val movement = topPath.indices.map { step ->
             IntArray(SIZE * SIZE).also { frame ->
