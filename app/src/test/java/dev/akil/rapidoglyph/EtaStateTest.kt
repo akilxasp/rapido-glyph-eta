@@ -10,7 +10,9 @@ class EtaStateTest {
         val state = EtaState(
             etaAtMillis = 7 * 60_000L,
             rawNotification = "",
-            updatedAtMillis = 0L,
+            etaUpdatedAtMillis = 0L,
+            payloadUpdatedAtMillis = 0L,
+            glyphConfirmedAtMillis = 0L,
         )
 
         assertEquals(7, state.displayMinutes(nowMillis = 1L))
@@ -24,7 +26,9 @@ class EtaStateTest {
         val state = EtaState(
             etaAtMillis = etaAt,
             rawNotification = "",
-            updatedAtMillis = 0L,
+            etaUpdatedAtMillis = 0L,
+            payloadUpdatedAtMillis = 0L,
+            glyphConfirmedAtMillis = 0L,
         )
 
         assertEquals(0, state.displayMinutes(nowMillis = etaAt + 5 * 60_000L))

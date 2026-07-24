@@ -38,7 +38,7 @@ object DiagnosticLog {
         }
     }
 
-    fun dump(context: Context, etaStore: EtaStore): String {
+    fun dump(context: Context, etaStore: EtaStore, includeRawPayload: Boolean = false): String {
         val state = etaStore.read()
         val notificationAccess = Settings.Secure.getString(
             context.contentResolver,
@@ -73,10 +73,16 @@ object DiagnosticLog {
             essentialKeyAccessibility=$accessibilityAccess
             displayMinutes=${state.displayMinutes()}
             etaAtMillis=${state.etaAtMillis}
-            updatedAtMillis=${state.updatedAtMillis}
+            etaUpdatedAtMillis=${state.etaUpdatedAtMillis}
+            payloadUpdatedAtMillis=${state.payloadUpdatedAtMillis}
+            glyphConfirmedAtMillis=${state.glyphConfirmedAtMillis}
 
             --- latest Rapido notification payload ---
-            ${state.rawNotification.ifBlank { "(none)" }}
+            ${if (includeRawPayload) {
+                state.rawNotification.ifBlank { "(none)" }
+            } else {
+                DiagnosticRedactor.payloadSummary(state.rawNotification)
+            }}
 
             --- event log (oldest first) ---
             $events
