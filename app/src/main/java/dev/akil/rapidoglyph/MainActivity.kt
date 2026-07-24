@@ -62,6 +62,9 @@ class MainActivity : Activity() {
                 statusText.text = "Could not open Glyph Toy settings: ${it.message}"
             }
         })
+        content.addView(button("3. Enable Essential Key refresh") {
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        })
         content.addView(button("Test with 7 minutes") {
             store.stopSweep()
             store.setTestEta(7)
@@ -117,6 +120,13 @@ class MainActivity : Activity() {
             contentResolver,
             "enabled_notification_listeners",
         ).orEmpty().contains(packageName)
+        val accessibilityAccess = Settings.Secure.getString(
+            contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+        ).orEmpty().split(':').any {
+            ComponentName.unflattenFromString(it)?.className ==
+                EssentialKeyAccessibilityService::class.java.name
+        }
 
         val eta = state.displayMinutes()?.let { "$it min" } ?: "waiting for Rapido"
         val sweep = store.readSweep()
@@ -130,6 +140,7 @@ class MainActivity : Activity() {
         } ?: "never"
         statusText.text =
             "Notification access: ${if (notificationAccess) "on" else "off"}\n" +
+                "Essential Key refresh: ${if (accessibilityAccess) "on" else "off"}\n" +
                 "ETA: $eta\nSweep: $sweepStatus\nUpdated: $updated"
         rawText.text = state.rawNotification.ifBlank {
             "No Rapido notification captured yet. Keep this installed, grant notification access, then book a ride."
