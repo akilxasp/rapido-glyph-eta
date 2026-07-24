@@ -39,6 +39,7 @@ object DiagnosticLog {
 
     fun dump(context: Context, etaStore: EtaStore): String {
         val state = etaStore.read()
+        val sweep = etaStore.readSweep()
         val notificationAccess = Settings.Secure.getString(
             context.contentResolver,
             "enabled_notification_listeners",
@@ -71,6 +72,8 @@ object DiagnosticLog {
             displayMinutes=${state.displayMinutes()}
             etaAtMillis=${state.etaAtMillis}
             updatedAtMillis=${state.updatedAtMillis}
+            sweepEnabled=${sweep.enabled}
+            sweepMinutes=${sweep.minutes}
 
             --- latest Rapido notification payload ---
             ${state.rawNotification.ifBlank { "(none)" }}
