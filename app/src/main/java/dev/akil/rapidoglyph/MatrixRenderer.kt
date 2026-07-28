@@ -120,33 +120,37 @@ object MatrixRenderer {
                 else -> hour12.toString()
             }
         }
-        val text = "$hourText:${minute.toString().padStart(2, '0')}"
-        val width = text.fold(0) { total, character ->
-            total + if (character == ':') 1 else 3
-        }
-        var offsetX = (SIZE - width) / 2
         val frame = IntArray(SIZE * SIZE)
-
-        text.forEach { character ->
-            if (character == ':') {
-                frame[indexOf(offsetX, CLOCK_START_Y + 1)] = MAX_BRIGHTNESS
-                frame[indexOf(offsetX, CLOCK_START_Y + 3)] = MAX_BRIGHTNESS
-                offsetX += 1
-            } else {
-                glyphs.getValue(character).forEachIndexed { y, row ->
-                    row.forEachIndexed { x, pixel ->
-                        if (pixel == '1') {
-                            frame[indexOf(offsetX + x, CLOCK_START_Y + y)] = MAX_BRIGHTNESS
-                        }
-                    }
-                }
-                offsetX += 3
-            }
-        }
+        drawCenteredText(frame, hourText, CLOCK_HOUR_Y)
+        frame[indexOf(SIZE / 2, CLOCK_SEPARATOR_Y)] = MAX_BRIGHTNESS
+        drawCenteredText(
+            frame,
+            minute.toString().padStart(2, '0'),
+            CLOCK_MINUTE_Y,
+        )
         return frame
     }
 
-    private const val CLOCK_START_Y = 4
+    private fun drawCenteredText(frame: IntArray, text: String, startY: Int) {
+        val width = text.length * GLYPH_WIDTH + (text.length - 1) * GLYPH_SPACING
+        val startX = (SIZE - width) / 2
+        text.forEachIndexed { index, character ->
+            val offsetX = startX + index * (GLYPH_WIDTH + GLYPH_SPACING)
+            glyphs.getValue(character).forEachIndexed { y, row ->
+                row.forEachIndexed { x, pixel ->
+                    if (pixel == '1') {
+                        frame[indexOf(offsetX + x, startY + y)] = MAX_BRIGHTNESS
+                    }
+                }
+            }
+        }
+    }
+
+    private const val GLYPH_WIDTH = 3
+    private const val GLYPH_SPACING = 1
+    private const val CLOCK_HOUR_Y = 1
+    private const val CLOCK_SEPARATOR_Y = 6
+    private const val CLOCK_MINUTE_Y = 7
 
     private fun indexOf(x: Int, y: Int) = y * SIZE + x
 
