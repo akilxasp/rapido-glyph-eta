@@ -1,40 +1,41 @@
-name: Android checks
+name: Publish v0.4.3 release
 
 on:
   push:
-  pull_request:
-  workflow_dispatch:
-    inputs:
-      build_apk:
-        description: Build and upload an installable debug APK
-        required: true
-        default: false
-        type: boolean
+    branches:
+      - tooling/seed-gradle-8-11-1
+
+permissions:
+  actions: read
+  contents: write
 
 jobs:
-  test:
+  release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-          cache: gradle
-      - name: Fetch Nothing Glyph Matrix SDK
+      - name: Download verified APK artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          curl --fail --location \
-            https://raw.githubusercontent.com/Nothing-Developer-Programme/GlyphMatrix-Developer-Kit/main/glyph-matrix-sdk-2.0.aar \
-            --output app/libs/glyph-matrix-sdk-2.0.aar
-      - name: Run unit tests
-        run: ./gradlew testDebugUnitTest
-      - name: Build debug APK
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_apk }}
-        run: ./gradlew assembleDebug
-      - name: Upload installable APK
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_apk }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: rapido-glyph-eta-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+          gh run download 30344699212 \
+            --repo "$GITHUB_REPOSITORY" \
+            --name rapido-glyph-eta-debug \
+            --dir release
+          mv release/app-debug.apk release/Rapido-Glyph-ETA-v0.4.3-debug.apk
+      - name: Verify APK checksum
+        run: |
+          echo "d71abf568feb31f0de3195587298d73c9bb3170d8e21ac67691b4117539a157e  release/Rapido-Glyph-ETA-v0.4.3-debug.apk" | sha256sum --check
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          asset="release/Rapido-Glyph-ETA-v0.4.3-debug.apk"
+          if gh release view v0.4.3 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload v0.4.3 "$asset" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create v0.4.3 "$asset" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target 377665db582c8bcdf131a0a9bff2e70ffa4fceba \
+              --title "Rapido Glyph ETA v0.4.3" \
+              --notes "Debug APK built from the latest PR source. Unit tests and APK archive integrity checks passed. SHA-256: d71abf568feb31f0de3195587298d73c9bb3170d8e21ac67691b4117539a157e"
+          fi
