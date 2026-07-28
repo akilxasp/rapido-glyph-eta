@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - tooling/seed-gradle-8-11-1
+  pull_request:
 
 jobs:
   seed:
