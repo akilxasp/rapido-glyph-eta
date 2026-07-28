@@ -1,9 +1,7 @@
 name: Publish v0.4.3 release
 
 on:
-  push:
-    branches:
-      - tooling/seed-gradle-8-11-1
+  pull_request:
 
 permissions:
   actions: read
@@ -11,6 +9,7 @@ permissions:
 
 jobs:
   release:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Download verified APK artifact
