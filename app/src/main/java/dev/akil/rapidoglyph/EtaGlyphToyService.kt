@@ -10,10 +10,12 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.Message
 import android.os.Messenger
+import android.text.format.DateFormat
 import com.nothing.ketchum.Glyph
 import com.nothing.ketchum.GlyphMatrixFrame
 import com.nothing.ketchum.GlyphMatrixManager
 import com.nothing.ketchum.GlyphToy
+import java.util.Calendar
 
 class EtaGlyphToyService : Service() {
     private var matrixManager: GlyphMatrixManager? = null
@@ -125,8 +127,18 @@ class EtaGlyphToyService : Service() {
 
     private fun playEssentialKeyAnimation() {
         eventHandler.removeCallbacksAndMessages(animationToken)
-        val frames = MatrixRenderer.essentialKeyAnimation()
-        DiagnosticLog.record(this, "Essential Key edge animation started: frames=${frames.size}")
+        val now = Calendar.getInstance()
+        val hourOfDay = now.get(Calendar.HOUR_OF_DAY)
+        val minute = now.get(Calendar.MINUTE)
+        val frames = MatrixRenderer.essentialKeyAnimation(
+            hourOfDay = hourOfDay,
+            minute = minute,
+            use24HourFormat = DateFormat.is24HourFormat(this),
+        )
+        DiagnosticLog.record(
+            this,
+            "Essential Key edge animation started: frames=${frames.size} clock=true",
+        )
         frames.forEachIndexed { index, frame ->
             eventHandler.postDelayed(
                 { submitFrame(frame) },
