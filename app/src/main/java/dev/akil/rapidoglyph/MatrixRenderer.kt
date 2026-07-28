@@ -121,7 +121,9 @@ object MatrixRenderer {
             }
         }
         val text = "$hourText:${minute.toString().padStart(2, '0')}"
-        val width = text.sumOf { character -> if (character == ':') 1 else 3 }
+        val width = text.fold(0) { total, character ->
+            total + if (character == ':') 1 else 3
+        }
         var offsetX = (SIZE - width) / 2
         val frame = IntArray(SIZE * SIZE)
 
