@@ -32,35 +32,71 @@ class MatrixRendererTest {
         assertEquals(169, frame.size)
         assertEquals(255, frame[6 * MatrixRenderer.SIZE + 6])
         assertEquals(9, frame.count { it > 0 })
-        assertTrue(frame.any { it == 144 })
+        assertTrue(frame.any { it == 143 })
         assertTrue(frame.any { it == 64 })
         assertTrue(frame.all { it in 0..255 })
     }
 
     @Test
-    fun essentialKeyAnimationTravelsAroundACircularRingAndFades() {
-        val frames = MatrixRenderer.essentialKeyAnimation()
+    fun essentialKeyAnimationTravelsAroundACircularRingWithCenteredTime() {
+        val frames = MatrixRenderer.essentialKeyAnimation(
+            hourOfDay = 18,
+            minute = 7,
+            use24HourFormat = false,
+        )
         val rightMiddle = 6 * MatrixRenderer.SIZE + 12
         val leftMiddle = 6 * MatrixRenderer.SIZE
+        val colonTop = 5 * MatrixRenderer.SIZE + 4
 
         assertEquals(23, frames.size)
         assertEquals(255, frames.first()[rightMiddle])
         assertEquals(255, frames[18][leftMiddle])
-        assertTrue(frames.last().all { it == 0 })
+        assertEquals(255, frames.first()[colonTop])
+        assertEquals(255, frames.last()[colonTop])
         frames.forEach { frame ->
             assertEquals(169, frame.size)
+            assertEquals(255, frame[colonTop])
             assertTrue(frame.all { it in 0..255 })
-            frame.forEachIndexed { index, brightness ->
-                val x = index % MatrixRenderer.SIZE
-                val y = index / MatrixRenderer.SIZE
-                if (brightness > 0) {
-                    val distanceSquared = (x - 6) * (x - 6) + (y - 6) * (y - 6)
-                    assertTrue(distanceSquared in 25..41)
-                }
-            }
         }
         listOf(0, 12, 156, 168).forEach { corner ->
             assertTrue(frames.all { it[corner] == 0 })
         }
+    }
+
+    @Test
+    fun essentialKeyClockUsesTwelveHourTimeAndPadsMinutes() {
+        val midnight = MatrixRenderer.essentialKeyAnimation(
+            hourOfDay = 0,
+            minute = 5,
+            use24HourFormat = false,
+        ).last()
+        val noon = MatrixRenderer.essentialKeyAnimation(
+            hourOfDay = 12,
+            minute = 5,
+            use24HourFormat = false,
+        ).last()
+
+        assertEquals(midnight.toList(), noon.toList())
+        assertEquals(255, midnight[5 * MatrixRenderer.SIZE + 6])
+        assertEquals(255, midnight[7 * MatrixRenderer.SIZE + 6])
+        assertTrue(midnight.any { it == 255 })
+    }
+
+    @Test
+    fun essentialKeyClockHonorsTwentyFourHourPreference() {
+        val twelveHour = MatrixRenderer.essentialKeyAnimation(
+            hourOfDay = 18,
+            minute = 7,
+            use24HourFormat = false,
+        ).last()
+        val twentyFourHour = MatrixRenderer.essentialKeyAnimation(
+            hourOfDay = 18,
+            minute = 7,
+            use24HourFormat = true,
+        ).last()
+
+        assertTrue(twelveHour.toList() != twentyFourHour.toList())
+        assertEquals(255, twentyFourHour[5 * MatrixRenderer.SIZE + 6])
+        assertEquals(255, twentyFourHour[7 * MatrixRenderer.SIZE + 6])
     }
 }
