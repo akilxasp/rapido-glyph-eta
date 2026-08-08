@@ -26,15 +26,17 @@ class MatrixRendererTest {
     }
 
     @Test
-    fun idleFrameIsACenteredPulseInsteadOfTextLikeDashes() {
+    fun idleFrameIsACenteredSmilingFace() {
         val frame = MatrixRenderer.eta(null)
 
         assertEquals(169, frame.size)
-        assertEquals(255, frame[6 * MatrixRenderer.SIZE + 6])
-        assertEquals(9, frame.count { it > 0 })
-        assertTrue(frame.any { it == 143 })
-        assertTrue(frame.any { it == 64 })
-        assertTrue(frame.all { it in 0..255 })
+        assertEquals(255, frame[4 * MatrixRenderer.SIZE + 3])
+        assertEquals(255, frame[8 * MatrixRenderer.SIZE + 3])
+        assertEquals(255, frame[3 * MatrixRenderer.SIZE + 7])
+        assertEquals(255, frame[6 * MatrixRenderer.SIZE + 9])
+        assertEquals(255, frame[9 * MatrixRenderer.SIZE + 7])
+        assertEquals(13, frame.count { it == 255 })
+        assertTrue(frame.all { it == 0 || it == 255 })
     }
 
     @Test
