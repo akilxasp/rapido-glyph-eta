@@ -44,12 +44,14 @@ object MatrixRenderer {
 
     fun idle(): IntArray =
         IntArray(SIZE * SIZE).also { frame ->
-            frame[indexOf(6, 6)] = MAX_BRIGHTNESS
-            listOf(4 to 4, 8 to 4, 8 to 8, 4 to 8).forEach { (x, y) ->
-                frame[indexOf(x, y)] = brightness(0.56f)
+            val colon = listOf(3 to 4, 3 to 8)
+            val smileBracket = buildList {
+                addAll((7..9).map { x -> x to 3 })
+                addAll((4..8).map { y -> 9 to y })
+                addAll((7..9).map { x -> x to 9 })
             }
-            listOf(6 to 3, 9 to 6, 6 to 9, 3 to 6).forEach { (x, y) ->
-                frame[indexOf(x, y)] = brightness(0.25f)
+            (colon + smileBracket).forEach { (x, y) ->
+                frame[indexOf(x, y)] = MAX_BRIGHTNESS
             }
         }
 
