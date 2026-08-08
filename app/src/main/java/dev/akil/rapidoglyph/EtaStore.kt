@@ -146,6 +146,19 @@ class EtaStore(context: Context) {
         preferences.edit().putLong(KEY_FORCE_REFRESH, nextToken).apply()
     }
 
+    fun glyphBrightnessPercent(): Int =
+        preferences.getInt(KEY_GLYPH_BRIGHTNESS_PERCENT, DEFAULT_GLYPH_BRIGHTNESS_PERCENT)
+            .coerceIn(MIN_GLYPH_BRIGHTNESS_PERCENT, MAX_GLYPH_BRIGHTNESS_PERCENT)
+
+    fun setGlyphBrightnessPercent(percent: Int) {
+        val safePercent = percent.coerceIn(
+            MIN_GLYPH_BRIGHTNESS_PERCENT,
+            MAX_GLYPH_BRIGHTNESS_PERCENT,
+        )
+        if (safePercent == glyphBrightnessPercent()) return
+        preferences.edit().putInt(KEY_GLYPH_BRIGHTNESS_PERCENT, safePercent).apply()
+    }
+
     fun markGlyphConfirmed(nowMillis: Long = System.currentTimeMillis()) {
         preferences.edit().putLong(KEY_GLYPH_CONFIRMED_AT, nowMillis).apply()
     }
@@ -172,6 +185,10 @@ class EtaStore(context: Context) {
         const val KEY_FORCE_REFRESH = "force_refresh"
         const val KEY_PREVIEW_REQUEST = "preview_request"
         const val KEY_TEST_ETA_AT = "test_eta_at"
+        const val KEY_GLYPH_BRIGHTNESS_PERCENT = "glyph_brightness_percent"
+        const val DEFAULT_GLYPH_BRIGHTNESS_PERCENT = 100
+        const val MIN_GLYPH_BRIGHTNESS_PERCENT = 1
+        const val MAX_GLYPH_BRIGHTNESS_PERCENT = 100
 
         private const val KEY_RAW = "raw_notification"
         private const val KEY_ETA_UPDATED_AT = "eta_updated_at"

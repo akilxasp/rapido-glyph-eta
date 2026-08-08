@@ -72,6 +72,7 @@ object DiagnosticLog {
             build=${Build.DISPLAY}
             notificationAccess=$notificationAccess
             essentialKeyAccessibility=$accessibilityAccess
+            glyphBrightnessPercent=${etaStore.glyphBrightnessPercent()}
             displayMinutes=${displayEta?.minutes}
             displaySource=${displayEta?.source}
             etaAtMillis=${state.etaAtMillis}

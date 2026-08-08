@@ -55,6 +55,10 @@ Then:
 6. Expand **Developer tools** and use **Preview 7 min on Glyph** before a real ride.
    Preview frames expire after three seconds and never replace a live Rapido ETA.
 
+The in-app **Glyph brightness** slider scales only the frames submitted by
+Rapido Glyph ETA. It is stored independently and does not change Nothing OS's
+device-wide Glyph brightness setting.
+
 ## Essential Key refresh
 
 Android may suspend background timers while the phone is locked. For a

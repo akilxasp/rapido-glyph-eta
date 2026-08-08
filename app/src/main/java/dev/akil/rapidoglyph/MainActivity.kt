@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.res.ColorStateList
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -25,6 +26,7 @@ import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import kotlin.math.max
@@ -45,12 +47,20 @@ class MainActivity : Activity() {
     private lateinit var developerPanel: LinearLayout
     private lateinit var developerToggle: Button
     private lateinit var previewButton: Button
+    private lateinit var brightnessValue: TextView
+    private lateinit var brightnessSeekBar: SeekBar
     private lateinit var store: EtaStore
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private var setupExpanded = true
     private var previousSetupComplete: Boolean? = null
     private var previousEtaPresentation: String? = null
+    private var brightnessDragging = false
+    private var pendingBrightnessPercent = EtaStore.DEFAULT_GLYPH_BRIGHTNESS_PERCENT
+
+    private val persistBrightness = Runnable {
+        store.setGlyphBrightnessPercent(pendingBrightnessPercent)
+    }
 
     private val preferenceListener =
         SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
@@ -82,6 +92,10 @@ class MainActivity : Activity() {
     }
 
     override fun onStop() {
+        mainHandler.removeCallbacks(persistBrightness)
+        if (::brightnessSeekBar.isInitialized) {
+            store.setGlyphBrightnessPercent(brightnessSeekBar.progress)
+        }
         mainHandler.removeCallbacks(foregroundTicker)
         store.unregister(preferenceListener)
         super.onStop()
@@ -118,6 +132,8 @@ class MainActivity : Activity() {
         content.addView(etaCard())
         content.addView(sectionTitle(getString(R.string.setup_heading)))
         content.addView(setupCard())
+        content.addView(sectionTitle(getString(R.string.glyph_brightness_heading)))
+        content.addView(brightnessCard())
 
         developerToggle = sectionToggle(getString(R.string.developer_tools_collapsed)).apply {
             setOnClickListener {
@@ -363,6 +379,97 @@ class MainActivity : Activity() {
         addView(rawText)
     }
 
+    private fun brightnessCard() = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(dp(18), dp(17), dp(18), dp(14))
+        background = rounded(SURFACE, 20)
+
+        addView(LinearLayout(this@MainActivity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(text(getString(R.string.glyph_brightness_app_output), 15f, Color.BLACK).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f,
+                )
+            })
+            brightnessValue = label(
+                getString(
+                    R.string.glyph_brightness_value,
+                    EtaStore.DEFAULT_GLYPH_BRIGHTNESS_PERCENT,
+                ),
+                Color.BLACK,
+            )
+            addView(brightnessValue)
+        })
+        addView(text(getString(R.string.glyph_brightness_description), 14f, MUTED).apply {
+            setPadding(0, dp(4), 0, dp(8))
+        })
+
+        brightnessSeekBar = SeekBar(this@MainActivity).apply {
+            min = EtaStore.MIN_GLYPH_BRIGHTNESS_PERCENT
+            max = EtaStore.MAX_GLYPH_BRIGHTNESS_PERCENT
+            progress = EtaStore.DEFAULT_GLYPH_BRIGHTNESS_PERCENT
+            progressTintList = ColorStateList.valueOf(BLACK)
+            progressBackgroundTintList = ColorStateList.valueOf(STROKE)
+            thumbTintList = ColorStateList.valueOf(RED)
+            contentDescription = getString(R.string.glyph_brightness_heading)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(
+                    seekBar: SeekBar,
+                    progress: Int,
+                    fromUser: Boolean,
+                ) {
+                    updateBrightnessLabel(progress)
+                    if (fromUser) scheduleBrightnessPersist(progress)
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar) {
+                    brightnessDragging = true
+                }
+
+                override fun onStopTrackingTouch(seekBar: SeekBar) {
+                    brightnessDragging = false
+                    mainHandler.removeCallbacks(persistBrightness)
+                    pendingBrightnessPercent = seekBar.progress
+                    store.setGlyphBrightnessPercent(pendingBrightnessPercent)
+                }
+            })
+        }
+        addView(
+            brightnessSeekBar,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(48),
+            ),
+        )
+    }.apply {
+        layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { bottomMargin = dp(18) }
+    }
+
+    private fun scheduleBrightnessPersist(percent: Int) {
+        pendingBrightnessPercent = percent.coerceIn(
+            EtaStore.MIN_GLYPH_BRIGHTNESS_PERCENT,
+            EtaStore.MAX_GLYPH_BRIGHTNESS_PERCENT,
+        )
+        mainHandler.removeCallbacks(persistBrightness)
+        mainHandler.postDelayed(persistBrightness, BRIGHTNESS_PERSIST_DELAY_MILLIS)
+    }
+
+    private fun updateBrightnessLabel(percent: Int) {
+        val safePercent = percent.coerceIn(
+            EtaStore.MIN_GLYPH_BRIGHTNESS_PERCENT,
+            EtaStore.MAX_GLYPH_BRIGHTNESS_PERCENT,
+        )
+        val value = getString(R.string.glyph_brightness_value, safePercent)
+        brightnessValue.text = value
+        brightnessSeekBar.stateDescription = value
+    }
+
     private fun sectionTitle(value: String) = label(value, Color.BLACK).apply {
         setPadding(dp(4), 0, 0, dp(12))
         isAccessibilityHeading = true
@@ -564,6 +671,7 @@ class MainActivity : Activity() {
     private fun refresh() {
         val nowMillis = System.currentTimeMillis()
         val state = store.read()
+        val brightnessPercent = store.glyphBrightnessPercent()
         val notificationAccess = isNotificationAccessEnabled()
         val accessibilityAccess = isEssentialKeyAccessEnabled()
         val glyphConfirmed = state.glyphConfirmedAtMillis > 0L
@@ -619,7 +727,13 @@ class MainActivity : Activity() {
                 )
             }
         }
-        updateEtaCard(presentation)
+        updateEtaCard(presentation, brightnessPercent)
+        if (!brightnessDragging && brightnessSeekBar.progress != brightnessPercent) {
+            brightnessSeekBar.progress = brightnessPercent
+        }
+        updateBrightnessLabel(
+            if (brightnessDragging) brightnessSeekBar.progress else brightnessPercent,
+        )
 
         updateSetupRow(
             notificationRow,
@@ -700,12 +814,12 @@ class MainActivity : Activity() {
         )
     }
 
-    private fun updateEtaCard(presentation: EtaPresentation) {
+    private fun updateEtaCard(presentation: EtaPresentation, brightnessPercent: Int) {
         etaEyebrow.text = presentation.heading
         etaValue.text = presentation.value
         etaMeta.text = presentation.meta
         etaStatusDot.background = circle(presentation.dotColor)
-        etaMatrixPreview.showMinutes(presentation.minutes)
+        etaMatrixPreview.showMinutes(presentation.minutes, brightnessPercent)
 
         val key = "${presentation.heading}|${presentation.value}|${presentation.meta}"
         if (previousEtaPresentation != null && previousEtaPresentation != key) {
@@ -787,6 +901,7 @@ class MainActivity : Activity() {
         const val MILLIS_PER_MINUTE = 60_000L
         const val STALE_UPDATE_MINUTES = 5L
         const val STATE_TRANSITION_MILLIS = 180L
+        const val BRIGHTNESS_PERSIST_DELAY_MILLIS = 120L
 
         const val GLYPH_TOY_PACKAGE = "com.nothing.thirdparty"
 

@@ -55,6 +55,15 @@ object MatrixRenderer {
             }
         }
 
+    fun withBrightness(frame: IntArray, percent: Int): IntArray {
+        val safePercent = percent.coerceIn(MIN_BRIGHTNESS_PERCENT, MAX_BRIGHTNESS_PERCENT)
+        if (safePercent == MAX_BRIGHTNESS_PERCENT) return frame.copyOf()
+        val factor = safePercent / MAX_BRIGHTNESS_PERCENT.toFloat()
+        return IntArray(frame.size) { index ->
+            (frame[index] * factor).roundToInt().coerceIn(0, MAX_BRIGHTNESS)
+        }
+    }
+
     fun essentialKeyAnimation(
         hourOfDay: Int,
         minute: Int,
@@ -153,6 +162,8 @@ object MatrixRenderer {
     private const val CLOCK_HOUR_Y = 1
     private const val CLOCK_SEPARATOR_Y = 6
     private const val CLOCK_MINUTE_Y = 7
+    private const val MIN_BRIGHTNESS_PERCENT = 1
+    private const val MAX_BRIGHTNESS_PERCENT = 100
 
     private fun indexOf(x: Int, y: Int) = y * SIZE + x
 

@@ -40,6 +40,18 @@ class MatrixRendererTest {
     }
 
     @Test
+    fun appBrightnessScalesPixelsWithoutChangingTheFrameShape() {
+        val frame = intArrayOf(0, 64, 143, 255)
+
+        assertEquals(
+            listOf(0, 32, 72, 128),
+            MatrixRenderer.withBrightness(frame, 50).toList(),
+        )
+        assertEquals(frame.toList(), MatrixRenderer.withBrightness(frame, 100).toList())
+        assertEquals(listOf(0, 1, 1, 3), MatrixRenderer.withBrightness(frame, 1).toList())
+    }
+
+    @Test
     fun essentialKeyAnimationTravelsAroundACircularRingWithStackedTime() {
         val frames = MatrixRenderer.essentialKeyAnimation(
             hourOfDay = 18,

@@ -29,6 +29,7 @@ class EtaGlyphToyService : Service() {
                 EtaStore.KEY_FORCE_REFRESH -> playEssentialKeyAnimation()
                 EtaStore.KEY_ETA_AT -> renderEta()
                 EtaStore.KEY_PREVIEW_REQUEST -> playPendingPreview()
+                EtaStore.KEY_GLYPH_BRIGHTNESS_PERCENT -> renderEta()
             }
         }
 
@@ -171,7 +172,11 @@ class EtaGlyphToyService : Service() {
 
     private fun render(minutes: Int?) {
         if (submitFrame(MatrixRenderer.eta(minutes))) {
-            DiagnosticLog.record(this, "Structured frame submitted: minutes=$minutes pixels=169")
+            DiagnosticLog.record(
+                this,
+                "Structured frame submitted: minutes=$minutes pixels=169 " +
+                    "brightness=${etaStore.glyphBrightnessPercent()}%",
+            )
         }
     }
 
@@ -182,8 +187,12 @@ class EtaGlyphToyService : Service() {
             return false
         }
         return runCatching {
+            val adjustedColors = MatrixRenderer.withBrightness(
+                colors,
+                etaStore.glyphBrightnessPercent(),
+            )
             val frame = GlyphMatrixFrame.Builder()
-                .addTop(colors)
+                .addTop(adjustedColors)
                 .build(applicationContext)
             manager.setMatrixFrame(frame)
         }.onFailure {

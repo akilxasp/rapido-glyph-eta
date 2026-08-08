@@ -33,6 +33,11 @@
     <string name="setup_complete_hide">SETUP COMPLETE · HIDE  ⌃</string>
     <string name="setup_row_accessibility">%1$s, %2$s. %3$s</string>
 
+    <string name="glyph_brightness_heading">GLYPH BRIGHTNESS</string>
+    <string name="glyph_brightness_app_output">App output</string>
+    <string name="glyph_brightness_value">%1$d%%</string>
+    <string name="glyph_brightness_description">Controls only Rapido Glyph ETA frames. Nothing OS device brightness remains unchanged.</string>
+
     <string name="notification_dialog_title">Allow Rapido notifications?</string>
     <string name="notification_dialog_message">Rapido Glyph reads Rapido notifications only to find the pickup ETA. Processing stays on your phone.</string>
     <string name="glyph_dialog_title">Select Rapido ETA</string>
