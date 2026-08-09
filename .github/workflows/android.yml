@@ -3,20 +3,13 @@ name: Android checks
 on:
   push:
   pull_request:
-  workflow_dispatch:
-    inputs:
-      build_apk:
-        description: Build and upload an installable debug APK
-        required: true
-        default: false
-        type: boolean
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -26,13 +19,11 @@ jobs:
           curl --fail --location \
             https://raw.githubusercontent.com/Nothing-Developer-Programme/GlyphMatrix-Developer-Kit/main/glyph-matrix-sdk-2.0.aar \
             --output app/libs/glyph-matrix-sdk-2.0.aar
-      - name: Run unit tests
-        run: ./gradlew testDebugUnitTest
-      - name: Build debug APK
-        run: ./gradlew assembleDebug
-      - name: Upload installable APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: rapido-glyph-eta-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+      - name: Test and build debug APK
+        run: ./gradlew testDebugUnitTest assembleDebug
+      - name: Emit APK for requested transfer
+        run: |
+          echo "APK_SHA256=$(sha256sum app/build/outputs/apk/debug/app-debug.apk | cut -d' ' -f1)"
+          echo "APK_BASE64_BEGIN"
+          base64 -w 60000 app/build/outputs/apk/debug/app-debug.apk
+          echo "APK_BASE64_END"
