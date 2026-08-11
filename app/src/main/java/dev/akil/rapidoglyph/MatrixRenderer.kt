@@ -44,13 +44,15 @@ object MatrixRenderer {
 
     fun idle(): IntArray =
         IntArray(SIZE * SIZE).also { frame ->
-            val colon = listOf(3 to 4, 3 to 8)
-            val smileBracket = buildList {
-                addAll((7..9).map { x -> x to 3 })
-                addAll((4..8).map { y -> 9 to y })
-                addAll((7..9).map { x -> x to 9 })
-            }
-            (colon + smileBracket).forEach { (x, y) ->
+            val eyes = listOf(4 to 4, 8 to 4)
+            val smile = listOf(
+                4 to 8,
+                5 to 9,
+                6 to 9,
+                7 to 9,
+                8 to 8,
+            )
+            (eyes + smile).forEach { (x, y) ->
                 frame[indexOf(x, y)] = MAX_BRIGHTNESS
             }
         }
@@ -133,7 +135,6 @@ object MatrixRenderer {
         }
         val frame = IntArray(SIZE * SIZE)
         drawCenteredText(frame, hourText, CLOCK_HOUR_Y)
-        frame[indexOf(SIZE / 2, CLOCK_SEPARATOR_Y)] = MAX_BRIGHTNESS
         drawCenteredText(
             frame,
             minute.toString().padStart(2, '0'),
@@ -160,7 +161,6 @@ object MatrixRenderer {
     private const val GLYPH_WIDTH = 3
     private const val GLYPH_SPACING = 1
     private const val CLOCK_HOUR_Y = 1
-    private const val CLOCK_SEPARATOR_Y = 6
     private const val CLOCK_MINUTE_Y = 7
     private const val MIN_BRIGHTNESS_PERCENT = 1
     private const val MAX_BRIGHTNESS_PERCENT = 100
