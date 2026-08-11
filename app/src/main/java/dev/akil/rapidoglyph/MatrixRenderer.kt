@@ -47,9 +47,11 @@ object MatrixRenderer {
             val eyes = listOf(4 to 4, 8 to 4)
             val smile = listOf(
                 4 to 8,
+                4 to 9,
                 5 to 9,
                 6 to 9,
                 7 to 9,
+                8 to 9,
                 8 to 8,
             )
             (eyes + smile).forEach { (x, y) ->
