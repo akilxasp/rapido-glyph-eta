@@ -33,9 +33,11 @@ class MatrixRendererTest {
         assertEquals(255, frame[4 * MatrixRenderer.SIZE + 4])
         assertEquals(255, frame[4 * MatrixRenderer.SIZE + 8])
         assertEquals(255, frame[8 * MatrixRenderer.SIZE + 4])
+        assertEquals(255, frame[9 * MatrixRenderer.SIZE + 4])
         assertEquals(255, frame[9 * MatrixRenderer.SIZE + 6])
+        assertEquals(255, frame[9 * MatrixRenderer.SIZE + 8])
         assertEquals(255, frame[8 * MatrixRenderer.SIZE + 8])
-        assertEquals(7, frame.count { it == 255 })
+        assertEquals(9, frame.count { it == 255 })
         assertTrue(frame.all { it == 0 || it == 255 })
     }
 
