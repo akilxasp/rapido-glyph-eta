@@ -1,8 +1,5 @@
 name: Android checks
 
-permissions:
-  contents: write
-
 on:
   push:
   pull_request:
@@ -32,7 +29,7 @@ jobs:
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest
       - name: Build debug APK
-        if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_apk) || (github.event_name == 'pull_request' && github.head_ref == 'agent/essential-key-refresh-v0.3.0') }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_apk }}
         run: ./gradlew assembleDebug
       - name: Upload installable APK
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_apk }}
@@ -41,15 +38,3 @@ jobs:
           name: rapido-glyph-eta-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-      - name: Publish v0.4.5 release
-        if: ${{ github.event_name == 'pull_request' && github.head_ref == 'agent/essential-key-refresh-v0.3.0' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          cp app/build/outputs/apk/debug/app-debug.apk \
-            Rapido-Glyph-ETA-v0.4.5-debug.apk
-          gh release create v0.4.5 \
-            Rapido-Glyph-ETA-v0.4.5-debug.apk \
-            --target "${{ github.event.pull_request.head.sha }}" \
-            --title "Rapido Glyph ETA v0.4.5" \
-            --notes "Promotes Custom Glyph import to the main screen and introduces the new Arrival Arc adaptive launcher icon. Includes the v0.4.4 vertical clock, independent Glyph brightness control, imported resting designs, and Essential Key flicker fix."
