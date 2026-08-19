@@ -47,6 +47,7 @@ class MainActivity : Activity() {
     private lateinit var developerPanel: LinearLayout
     private lateinit var developerToggle: Button
     private lateinit var previewButton: Button
+    private lateinit var restingGlyphStatus: TextView
     private lateinit var brightnessValue: TextView
     private lateinit var brightnessSeekBar: SeekBar
     private lateinit var store: EtaStore
@@ -99,6 +100,32 @@ class MainActivity : Activity() {
         mainHandler.removeCallbacks(foregroundTicker)
         store.unregister(preferenceListener)
         super.onStop()
+    }
+
+    @Deprecated("Deprecated in Android; retained because this app uses platform Activity APIs only")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQUEST_IMPORT_RESTING_GLYPH || resultCode != RESULT_OK) return
+        val uri = data?.data ?: return
+        runCatching {
+            val json = contentResolver.openInputStream(uri)?.use(::readImportText)
+                ?: throw IllegalArgumentException("Selected file could not be opened")
+            store.setRestingGlyphFrame(GlyphDesignImporter.parse(json))
+        }.onSuccess {
+            DiagnosticLog.record(this, "Resting Glyph JSON imported: pixels=169 normalized=true")
+            Toast.makeText(this, R.string.resting_glyph_imported_toast, Toast.LENGTH_LONG).show()
+            refresh()
+        }.onFailure { error ->
+            DiagnosticLog.record(this, "Resting Glyph JSON import failed", error)
+            Toast.makeText(
+                this,
+                getString(
+                    R.string.resting_glyph_import_error,
+                    error.message ?: error.javaClass.simpleName,
+                ),
+                Toast.LENGTH_LONG,
+            ).show()
+        }
     }
 
     private fun buildContent(): View {
@@ -361,6 +388,22 @@ class MainActivity : Activity() {
             ).show()
         }
         addView(previewButton)
+        restingGlyphStatus = text("", 13f, MUTED).apply {
+            setPadding(0, dp(18), 0, 0)
+        }
+        addView(restingGlyphStatus)
+        addView(secondaryButton(getString(R.string.import_resting_glyph)) {
+            openRestingGlyphImporter()
+        })
+        addView(secondaryButton(getString(R.string.restore_resting_glyph)) {
+            store.clearRestingGlyphFrame()
+            DiagnosticLog.record(this@MainActivity, "Built-in Resting Glyph restored")
+            Toast.makeText(
+                this@MainActivity,
+                R.string.resting_glyph_restored_toast,
+                Toast.LENGTH_SHORT,
+            ).show()
+        })
         addView(secondaryButton(getString(R.string.copy_redacted_dump)) {
             copyDebugDump(includeRawPayload = false)
         })
@@ -468,6 +511,35 @@ class MainActivity : Activity() {
         val value = getString(R.string.glyph_brightness_value, safePercent)
         brightnessValue.text = value
         brightnessSeekBar.stateDescription = value
+    }
+
+    @Suppress("DEPRECATION")
+    private fun openRestingGlyphImporter() {
+        startActivityForResult(
+            Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "*/*"
+                putExtra(
+                    Intent.EXTRA_MIME_TYPES,
+                    arrayOf("application/json", "text/plain", "application/octet-stream"),
+                )
+            },
+            REQUEST_IMPORT_RESTING_GLYPH,
+        )
+    }
+
+    private fun readImportText(input: java.io.InputStream): String {
+        val result = StringBuilder()
+        input.bufferedReader().use { reader ->
+            val buffer = CharArray(4096)
+            while (true) {
+                val count = reader.read(buffer)
+                if (count < 0) break
+                result.append(buffer, 0, count)
+                require(result.length <= MAX_IMPORT_CHARACTERS) { "Design file is too large" }
+            }
+        }
+        return result.toString()
     }
 
     private fun sectionTitle(value: String) = label(value, Color.BLACK).apply {
@@ -785,6 +857,13 @@ class MainActivity : Activity() {
         rawText.text = state.rawNotification.ifBlank {
             getString(R.string.no_payload)
         }
+        restingGlyphStatus.text = getString(
+            if (store.restingGlyphFrame() == null) {
+                R.string.resting_glyph_builtin
+            } else {
+                R.string.resting_glyph_imported
+            },
+        )
     }
 
     private fun updateSetupVisibility(setupComplete: Boolean) {
@@ -819,7 +898,11 @@ class MainActivity : Activity() {
         etaValue.text = presentation.value
         etaMeta.text = presentation.meta
         etaStatusDot.background = circle(presentation.dotColor)
-        etaMatrixPreview.showMinutes(presentation.minutes, brightnessPercent)
+        etaMatrixPreview.showMinutes(
+            presentation.minutes,
+            brightnessPercent,
+            store.restingGlyphFrame(),
+        )
 
         val key = "${presentation.heading}|${presentation.value}|${presentation.meta}"
         if (previousEtaPresentation != null && previousEtaPresentation != key) {
@@ -902,6 +985,8 @@ class MainActivity : Activity() {
         const val STALE_UPDATE_MINUTES = 5L
         const val STATE_TRANSITION_MILLIS = 180L
         const val BRIGHTNESS_PERSIST_DELAY_MILLIS = 120L
+        const val REQUEST_IMPORT_RESTING_GLYPH = 4107
+        const val MAX_IMPORT_CHARACTERS = 256 * 1024
 
         const val GLYPH_TOY_PACKAGE = "com.nothing.thirdparty"
 
