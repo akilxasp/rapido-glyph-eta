@@ -26,9 +26,13 @@ class GlyphMatrixPreviewView(context: Context) : View(context) {
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
     }
 
-    fun showMinutes(minutes: Int?, brightnessPercent: Int) {
+    fun showMinutes(
+        minutes: Int?,
+        brightnessPercent: Int,
+        restingFrame: IntArray? = null,
+    ) {
         val next = MatrixRenderer.withBrightness(
-            MatrixRenderer.eta(minutes),
+            MatrixRenderer.eta(minutes, restingFrame),
             brightnessPercent,
         )
         if (!frame.contentEquals(next)) {
