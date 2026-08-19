@@ -30,6 +30,7 @@ class EtaGlyphToyService : Service() {
                 EtaStore.KEY_ETA_AT -> renderEta()
                 EtaStore.KEY_PREVIEW_REQUEST -> playPendingPreview()
                 EtaStore.KEY_GLYPH_BRIGHTNESS_PERCENT -> renderEta()
+                EtaStore.KEY_RESTING_GLYPH_FRAME -> renderEta()
             }
         }
 
@@ -171,7 +172,7 @@ class EtaGlyphToyService : Service() {
     }
 
     private fun render(minutes: Int?) {
-        if (submitFrame(MatrixRenderer.eta(minutes))) {
+        if (submitFrame(MatrixRenderer.eta(minutes, etaStore.restingGlyphFrame()))) {
             DiagnosticLog.record(
                 this,
                 "Structured frame submitted: minutes=$minutes pixels=169 " +
