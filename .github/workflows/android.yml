@@ -1,21 +1,18 @@
-name: Android checks
+name: One-off v0.4.4 APK build
 
 on:
-  push:
   pull_request:
-  workflow_dispatch:
-    inputs:
-      build_apk:
-        description: Build and upload an installable debug APK
-        required: true
-        default: false
-        type: boolean
+
+permissions:
+  contents: write
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -26,15 +23,17 @@ jobs:
           curl --fail --location \
             https://raw.githubusercontent.com/Nothing-Developer-Programme/GlyphMatrix-Developer-Kit/main/glyph-matrix-sdk-2.0.aar \
             --output app/libs/glyph-matrix-sdk-2.0.aar
-      - name: Run unit tests
-        run: ./gradlew testDebugUnitTest
-      - name: Build debug APK
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_apk }}
-        run: ./gradlew assembleDebug
-      - name: Upload installable APK
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_apk }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: rapido-glyph-eta-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+      - name: Test and build debug APK
+        run: ./gradlew testDebugUnitTest assembleDebug
+      - name: Commit temporary APK transfer
+        run: |
+          mkdir -p build-deliverables
+          cp app/build/outputs/apk/debug/app-debug.apk \
+            build-deliverables/Rapido-Glyph-ETA-v0.4.4-debug.apk
+          base64 -w 0 build-deliverables/Rapido-Glyph-ETA-v0.4.4-debug.apk > /tmp/apk.b64
+          split -b 700k -d -a 2 /tmp/apk.b64 build-deliverables/apk.b64.part-
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add build-deliverables/
+          git commit -m "Temporary v0.4.4 APK transfer [skip ci]"
+          git push origin HEAD:${{ github.head_ref }}
