@@ -159,6 +159,26 @@ class EtaStore(context: Context) {
         preferences.edit().putInt(KEY_GLYPH_BRIGHTNESS_PERCENT, safePercent).apply()
     }
 
+    fun restingGlyphFrame(): IntArray? {
+        val encoded = preferences.getString(KEY_RESTING_GLYPH_FRAME, null) ?: return null
+        val values = encoded.split(',').mapNotNull(String::toIntOrNull)
+        if (values.size != MatrixRenderer.SIZE * MatrixRenderer.SIZE) return null
+        if (values.any { it !in 0..255 }) return null
+        return values.toIntArray()
+    }
+
+    fun setRestingGlyphFrame(frame: IntArray) {
+        require(frame.size == MatrixRenderer.SIZE * MatrixRenderer.SIZE)
+        require(frame.all { it in 0..255 })
+        preferences.edit()
+            .putString(KEY_RESTING_GLYPH_FRAME, frame.joinToString(","))
+            .apply()
+    }
+
+    fun clearRestingGlyphFrame() {
+        preferences.edit().remove(KEY_RESTING_GLYPH_FRAME).apply()
+    }
+
     fun markGlyphConfirmed(nowMillis: Long = System.currentTimeMillis()) {
         preferences.edit().putLong(KEY_GLYPH_CONFIRMED_AT, nowMillis).apply()
     }
@@ -186,6 +206,7 @@ class EtaStore(context: Context) {
         const val KEY_PREVIEW_REQUEST = "preview_request"
         const val KEY_TEST_ETA_AT = "test_eta_at"
         const val KEY_GLYPH_BRIGHTNESS_PERCENT = "glyph_brightness_percent"
+        const val KEY_RESTING_GLYPH_FRAME = "resting_glyph_frame"
         const val DEFAULT_GLYPH_BRIGHTNESS_PERCENT = 100
         const val MIN_GLYPH_BRIGHTNESS_PERCENT = 1
         const val MAX_GLYPH_BRIGHTNESS_PERCENT = 100
