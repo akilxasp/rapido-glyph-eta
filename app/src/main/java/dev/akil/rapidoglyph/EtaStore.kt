@@ -3,15 +3,42 @@ package dev.akil.rapidoglyph
 import android.content.Context
 
 data class EtaState(
-    val minutes: Int?,
     val etaAtMillis: Long,
     val rawNotification: String,
-    val updatedAtMillis: Long,
+    val etaUpdatedAtMillis: Long,
+    val payloadUpdatedAtMillis: Long,
+    val glyphConfirmedAtMillis: Long,
+    val testEtaAtMillis: Long = 0L,
+    val testStartedAtMillis: Long = 0L,
 ) {
     fun displayMinutes(nowMillis: Long = System.currentTimeMillis()): Int? {
-        if (minutes == null || etaAtMillis <= 0L) return null
-        if (nowMillis > etaAtMillis + STALE_GRACE_MILLIS) return null
-        return ((etaAtMillis - nowMillis).coerceAtLeast(0L) + MILLIS_PER_MINUTE - 1L)
+        return displayEta(nowMillis)?.minutes
+    }
+
+    fun displayEta(nowMillis: Long = System.currentTimeMillis()): DisplayEta? {
+        liveMinutes(nowMillis)?.let {
+            return DisplayEta(it, DisplayEtaSource.RAPIDO)
+        }
+        testMinutes(nowMillis)?.let {
+            return DisplayEta(it, DisplayEtaSource.TEST)
+        }
+        return null
+    }
+
+    fun liveMinutes(nowMillis: Long = System.currentTimeMillis()): Int? =
+        countdownMinutes(etaAtMillis, nowMillis, STALE_GRACE_MILLIS)
+
+    fun testMinutes(nowMillis: Long = System.currentTimeMillis()): Int? =
+        countdownMinutes(testEtaAtMillis, nowMillis, graceMillis = 0L)
+
+    private fun countdownMinutes(
+        arrivalAtMillis: Long,
+        nowMillis: Long,
+        graceMillis: Long,
+    ): Int? {
+        if (arrivalAtMillis <= 0L) return null
+        if (nowMillis > arrivalAtMillis + graceMillis) return null
+        return ((arrivalAtMillis - nowMillis).coerceAtLeast(0L) + MILLIS_PER_MINUTE - 1L)
             .div(MILLIS_PER_MINUTE)
             .toInt()
             .coerceAtMost(99)
@@ -23,43 +50,145 @@ data class EtaState(
     }
 }
 
+data class DisplayEta(
+    val minutes: Int,
+    val source: DisplayEtaSource,
+)
+
+enum class DisplayEtaSource {
+    RAPIDO,
+    TEST,
+}
+
+data class GlyphPreview(
+    val token: Long,
+    val minutes: Int,
+)
+
+internal fun isPreviewRequestFresh(requestedAtMillis: Long, nowMillis: Long): Boolean =
+    requestedAtMillis > 0L &&
+        nowMillis >= requestedAtMillis &&
+        nowMillis - requestedAtMillis <= PREVIEW_REQUEST_TTL_MILLIS
+
 class EtaStore(context: Context) {
     private val preferences =
         context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
     fun read(): EtaState = EtaState(
-        minutes = preferences.getInt(KEY_MINUTES, NO_ETA).takeUnless { it == NO_ETA },
         etaAtMillis = preferences.getLong(KEY_ETA_AT, 0L),
         rawNotification = preferences.getString(KEY_RAW, "").orEmpty(),
-        updatedAtMillis = preferences.getLong(KEY_UPDATED_AT, 0L),
+        etaUpdatedAtMillis = preferences.getLong(
+            KEY_ETA_UPDATED_AT,
+            preferences.getLong(LEGACY_KEY_UPDATED_AT, 0L),
+        ),
+        payloadUpdatedAtMillis = preferences.getLong(
+            KEY_PAYLOAD_UPDATED_AT,
+            preferences.getLong(LEGACY_KEY_UPDATED_AT, 0L),
+        ),
+        glyphConfirmedAtMillis = preferences.getLong(KEY_GLYPH_CONFIRMED_AT, 0L),
+        testEtaAtMillis = preferences.getLong(KEY_TEST_ETA_AT, 0L),
+        testStartedAtMillis = preferences.getLong(KEY_TEST_STARTED_AT, 0L),
     )
 
     fun save(eta: ParsedEta, rawNotification: String, nowMillis: Long = System.currentTimeMillis()) {
         preferences.edit()
-            .putInt(KEY_MINUTES, eta.minutes)
             .putLong(KEY_ETA_AT, nowMillis + eta.minutes * MILLIS_PER_MINUTE)
             .putString(KEY_RAW, rawNotification)
-            .putLong(KEY_UPDATED_AT, nowMillis)
+            .putLong(KEY_ETA_UPDATED_AT, nowMillis)
+            .putLong(KEY_PAYLOAD_UPDATED_AT, nowMillis)
+            .remove(KEY_TEST_ETA_AT)
+            .remove(KEY_TEST_STARTED_AT)
             .apply()
     }
 
     fun saveDiagnostic(rawNotification: String, nowMillis: Long = System.currentTimeMillis()) {
         preferences.edit()
             .putString(KEY_RAW, rawNotification)
-            .putLong(KEY_UPDATED_AT, nowMillis)
+            .putLong(KEY_PAYLOAD_UPDATED_AT, nowMillis)
             .apply()
     }
 
-    fun setTestEta(minutes: Int) {
-        save(ParsedEta(minutes, "Manual test"), "Manual test ETA: $minutes min")
+    fun requestPreview(
+        minutes: Int,
+        nowMillis: Long = System.currentTimeMillis(),
+    ) {
+        val nextToken = preferences.getLong(KEY_PREVIEW_REQUEST, 0L) + 1L
+        val safeMinutes = minutes.coerceIn(1, 99)
+        preferences.edit()
+            .putInt(KEY_PREVIEW_MINUTES, safeMinutes)
+            .putLong(KEY_PREVIEW_REQUESTED_AT, nowMillis)
+            .putLong(KEY_TEST_STARTED_AT, nowMillis)
+            .putLong(KEY_TEST_ETA_AT, nowMillis + safeMinutes * MILLIS_PER_MINUTE)
+            .putLong(KEY_PREVIEW_REQUEST, nextToken)
+            .apply()
+    }
+
+    fun takePendingPreview(
+        nowMillis: Long = System.currentTimeMillis(),
+    ): GlyphPreview? {
+        val token = preferences.getLong(KEY_PREVIEW_REQUEST, 0L)
+        if (token <= preferences.getLong(KEY_PREVIEW_HANDLED, 0L)) return null
+
+        val requestedAt = preferences.getLong(KEY_PREVIEW_REQUESTED_AT, 0L)
+        preferences.edit().putLong(KEY_PREVIEW_HANDLED, token).apply()
+        if (!isPreviewRequestFresh(requestedAt, nowMillis)) {
+            return null
+        }
+
+        return GlyphPreview(
+            token = token,
+            minutes = preferences.getInt(KEY_PREVIEW_MINUTES, 7).coerceIn(1, 99),
+        )
+    }
+
+    fun requestGlyphRefresh() {
+        val nextToken = preferences.getLong(KEY_FORCE_REFRESH, 0L) + 1L
+        preferences.edit().putLong(KEY_FORCE_REFRESH, nextToken).apply()
+    }
+
+    fun glyphBrightnessPercent(): Int =
+        preferences.getInt(KEY_GLYPH_BRIGHTNESS_PERCENT, DEFAULT_GLYPH_BRIGHTNESS_PERCENT)
+            .coerceIn(MIN_GLYPH_BRIGHTNESS_PERCENT, MAX_GLYPH_BRIGHTNESS_PERCENT)
+
+    fun setGlyphBrightnessPercent(percent: Int) {
+        val safePercent = percent.coerceIn(
+            MIN_GLYPH_BRIGHTNESS_PERCENT,
+            MAX_GLYPH_BRIGHTNESS_PERCENT,
+        )
+        if (safePercent == glyphBrightnessPercent()) return
+        preferences.edit().putInt(KEY_GLYPH_BRIGHTNESS_PERCENT, safePercent).apply()
+    }
+
+    fun restingGlyphFrame(): IntArray? {
+        val encoded = preferences.getString(KEY_RESTING_GLYPH_FRAME, null) ?: return null
+        val values = encoded.split(',').mapNotNull(String::toIntOrNull)
+        if (values.size != MatrixRenderer.SIZE * MatrixRenderer.SIZE) return null
+        if (values.any { it !in 0..255 }) return null
+        return values.toIntArray()
+    }
+
+    fun setRestingGlyphFrame(frame: IntArray) {
+        require(frame.size == MatrixRenderer.SIZE * MatrixRenderer.SIZE)
+        require(frame.all { it in 0..255 })
+        preferences.edit()
+            .putString(KEY_RESTING_GLYPH_FRAME, frame.joinToString(","))
+            .apply()
+    }
+
+    fun clearRestingGlyphFrame() {
+        preferences.edit().remove(KEY_RESTING_GLYPH_FRAME).apply()
+    }
+
+    fun markGlyphConfirmed(nowMillis: Long = System.currentTimeMillis()) {
+        preferences.edit().putLong(KEY_GLYPH_CONFIRMED_AT, nowMillis).apply()
     }
 
     fun clear() {
         preferences.edit()
-            .putInt(KEY_MINUTES, NO_ETA)
             .putLong(KEY_ETA_AT, 0L)
             .putString(KEY_RAW, "")
-            .putLong(KEY_UPDATED_AT, System.currentTimeMillis())
+            .putLong(KEY_ETA_UPDATED_AT, 0L)
+            .putLong(KEY_PAYLOAD_UPDATED_AT, System.currentTimeMillis())
             .apply()
     }
 
@@ -72,12 +201,28 @@ class EtaStore(context: Context) {
     }
 
     companion object {
-        const val KEY_MINUTES = "eta_minutes"
         const val KEY_ETA_AT = "eta_at"
+        const val KEY_FORCE_REFRESH = "force_refresh"
+        const val KEY_PREVIEW_REQUEST = "preview_request"
+        const val KEY_TEST_ETA_AT = "test_eta_at"
+        const val KEY_GLYPH_BRIGHTNESS_PERCENT = "glyph_brightness_percent"
+        const val KEY_RESTING_GLYPH_FRAME = "resting_glyph_frame"
+        const val DEFAULT_GLYPH_BRIGHTNESS_PERCENT = 100
+        const val MIN_GLYPH_BRIGHTNESS_PERCENT = 1
+        const val MAX_GLYPH_BRIGHTNESS_PERCENT = 100
+
         private const val KEY_RAW = "raw_notification"
-        private const val KEY_UPDATED_AT = "updated_at"
+        private const val KEY_ETA_UPDATED_AT = "eta_updated_at"
+        private const val KEY_PAYLOAD_UPDATED_AT = "payload_updated_at"
+        private const val KEY_GLYPH_CONFIRMED_AT = "glyph_confirmed_at"
+        private const val KEY_PREVIEW_MINUTES = "preview_minutes"
+        private const val KEY_PREVIEW_REQUESTED_AT = "preview_requested_at"
+        private const val KEY_PREVIEW_HANDLED = "preview_handled"
+        private const val KEY_TEST_STARTED_AT = "test_started_at"
+        private const val LEGACY_KEY_UPDATED_AT = "updated_at"
         private const val PREFERENCES_NAME = "rapido_eta"
-        private const val NO_ETA = -1
         private const val MILLIS_PER_MINUTE = 60_000L
     }
 }
+
+private const val PREVIEW_REQUEST_TTL_MILLIS = 2 * 60_000L

@@ -6,7 +6,6 @@ import java.time.LocalTime
 
 data class ParsedEta(
     val minutes: Int,
-    val matchedText: String,
 )
 
 object EtaParser {
@@ -28,7 +27,7 @@ object EtaParser {
             relativePatterns.forEach { pattern ->
                 val match = pattern.find(text) ?: return@forEach
                 val minutes = match.groupValues[1].toIntOrNull() ?: return@forEach
-                if (minutes in 0..180) return ParsedEta(minutes, match.value)
+                if (minutes in 0..180) return ParsedEta(minutes)
             }
         }
 
@@ -49,10 +48,9 @@ object EtaParser {
             var target = now.toLocalDate().atTime(LocalTime.of(hour24, minute))
             if (target.isBefore(now.minusMinutes(1))) target = target.plusDays(1)
             val minutesAway = Duration.between(now, target).toMinutes().toInt().coerceAtLeast(0)
-            if (minutesAway <= 180) return ParsedEta(minutesAway, match.value)
+            if (minutesAway <= 180) return ParsedEta(minutesAway)
         }
 
         return null
     }
 }
-

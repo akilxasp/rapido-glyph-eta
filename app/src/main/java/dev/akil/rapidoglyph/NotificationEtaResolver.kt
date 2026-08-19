@@ -24,7 +24,7 @@ object NotificationEtaResolver {
         val futureWhen = whenMillis - nowMillis
         if (futureWhen in 1..MAX_ETA_MILLIS) {
             val minutes = ((futureWhen + MILLIS_PER_MINUTE - 1L) / MILLIS_PER_MINUTE).toInt()
-            return ParsedEta(minutes, "notification.when")
+            return ParsedEta(minutes)
         }
         return null
     }
