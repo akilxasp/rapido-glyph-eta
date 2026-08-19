@@ -61,6 +61,13 @@
     <string name="copy_redacted_dump">COPY REDACTED DEBUG DUMP</string>
     <string name="copy_raw_dump">COPY RAW DEBUG DUMP</string>
     <string name="refresh_diagnostics">REFRESH DIAGNOSTICS</string>
+    <string name="import_resting_glyph">IMPORT RESTING GLYPH JSON</string>
+    <string name="restore_resting_glyph">RESTORE BUILT-IN RESTING GLYPH</string>
+    <string name="resting_glyph_builtin">Resting Glyph · Built-in design</string>
+    <string name="resting_glyph_imported">Resting Glyph · Imported design active</string>
+    <string name="resting_glyph_imported_toast">Resting Glyph design imported and normalized to full brightness.</string>
+    <string name="resting_glyph_restored_toast">Built-in Resting Glyph restored.</string>
+    <string name="resting_glyph_import_error">Could not import design: %1$s</string>
     <string name="latest_payload_heading">LATEST RAPIDO PAYLOAD · ON DEVICE</string>
     <string name="no_payload">No Rapido notification captured yet.</string>
     <string name="raw_dump_warning_title">Raw notification data</string>
