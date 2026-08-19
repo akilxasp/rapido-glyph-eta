@@ -26,19 +26,21 @@ class MatrixRendererTest {
     }
 
     @Test
-    fun idleFrameIsACenteredSmilingFace() {
+    fun idleFrameMatchesTheShadedRestingFigureAtFullRelativeBrightness() {
         val frame = MatrixRenderer.eta(null)
 
         assertEquals(169, frame.size)
+        assertEquals(36, frame.count { it > 0 })
+        assertEquals(6, frame.count { it == 69 })
+        assertEquals(1, frame.count { it == 97 })
+        assertEquals(7, frame.count { it == 184 })
+        assertEquals(22, frame.count { it == 255 })
+        assertEquals(69, frame[3 * MatrixRenderer.SIZE + 3])
         assertEquals(255, frame[4 * MatrixRenderer.SIZE + 4])
-        assertEquals(255, frame[4 * MatrixRenderer.SIZE + 8])
-        assertEquals(255, frame[8 * MatrixRenderer.SIZE + 4])
-        assertEquals(255, frame[9 * MatrixRenderer.SIZE + 4])
-        assertEquals(255, frame[9 * MatrixRenderer.SIZE + 6])
-        assertEquals(255, frame[9 * MatrixRenderer.SIZE + 8])
-        assertEquals(255, frame[8 * MatrixRenderer.SIZE + 8])
-        assertEquals(9, frame.count { it == 255 })
-        assertTrue(frame.all { it == 0 || it == 255 })
+        assertEquals(97, frame[7 * MatrixRenderer.SIZE + 5])
+        assertEquals(184, frame[8 * MatrixRenderer.SIZE + 6])
+        assertEquals(0, frame[12 * MatrixRenderer.SIZE + 12])
+        assertTrue(frame.all { it in setOf(0, 69, 97, 184, 255) })
     }
 
     @Test
