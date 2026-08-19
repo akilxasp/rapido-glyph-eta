@@ -11,20 +11,9 @@ android {
         applicationId = "dev.akil.rapidoglyph"
         minSdk = 34
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.2.0"
+        versionCode = 11
+        versionName = "0.4.5"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
-            )
-        }
     }
 
     compileOptions {
@@ -38,7 +27,6 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.16.0")
     implementation(files("libs/glyph-matrix-sdk-2.0.aar"))
     testImplementation("junit:junit:4.13.2")
 }

@@ -19,6 +19,12 @@ phone's 13×13 Glyph Matrix.
 The app does not use the network and does not send notification content
 anywhere.
 
+## Continuous integration
+
+Pushes and pull requests run unit tests only. They do not assemble or upload
+an APK. To create an installable debug APK, manually run the **Android checks**
+workflow and enable its **Build and upload an installable debug APK** option.
+
 ## Important platform constraint
 
 Phone (4a) Pro supports only Always-On Display (AOD) Glyph Toys. After
@@ -43,30 +49,55 @@ Then:
    [Glyph Matrix Developer Kit][gdk].
 2. Put it at `app/libs/glyph-matrix-sdk-2.0.aar`.
 3. Open this repository in Android Studio and install the `debug` build.
-4. In the app, grant notification access.
-5. Select the **Rapido ETA** Always-On Glyph Toy.
-6. Use **Test with 7 minutes** before testing a real ride.
+4. Follow the two required setup rows in the app:
+   grant notification access, then select the **Rapido ETA** Always-On Glyph Toy.
+5. Optionally enable **Refresh with Essential Key**.
+6. Expand **Developer tools** and use **Preview 7 min on Glyph** before a real ride.
+   Preview frames expire after three seconds and never replace a live Rapido ETA.
 
-To inspect every numeric frame on real hardware, tap **Start 1–99 sweep
-(3 sec each)**. The selected Glyph Toy displays each value in order, loops
-from `99m` back to `1m`, and continues until **Stop number sweep** is tapped.
+The in-app **Glyph brightness** slider scales only the frames submitted by
+Rapido Glyph ETA. It is stored independently and does not change Nothing OS's
+device-wide Glyph brightness setting.
 
-If the ETA is visible in the app but not on the matrix, tap **Copy debug
-dump** and paste the result into an issue or chat. The dump contains device
-and app build details, the latest Rapido notification payload, and recent
-Glyph Toy service lifecycle/render events. Review it for personal information
-before sharing.
+The main screen’s **Custom Glyph** section can import a Glyph Museum JSON design as the resting frame.
+The app expands Phone (4a) Pro's 137 physical LED values into the SDK's 13×13
+coordinate space; full 169-value matrix files are accepted too. It preserves
+relative intensity, scales the brightest pixel to full output, and stores the
+design locally until **Restore built-in Resting Glyph** is used.
+
+## Essential Key refresh
+
+Android may suspend background timers while the phone is locked. For a
+user-triggered refresh without holding a wake lock, enable **Essential Key
+Glyph refresh** under Android Accessibility settings. A press of the Nothing
+Essential Key resubmits the current ETA frame.
+Before restoring the ETA, a short circular confirmation animation sends two
+fading trails from the ring's rightmost point around its upper and lower arcs
+to the leftmost point.
+
+The accessibility service requests hardware key filtering only, cannot
+retrieve window content, does not consume the key event, and does not use the
+network. Android permits only one accessibility service to filter hardware
+keys at a time, so other key-remapping accessibility services must be disabled
+while using this feature.
+
+If the ETA is visible in the app but not on the matrix, use **Copy redacted
+debug dump**. It contains device/app build details and recent Glyph Toy
+service events, but replaces notification content with a size summary. A raw
+dump remains available behind a warning for cases where the exact notification
+wording is required; review it for names, phone numbers, locations, PINs, and
+booking details before sharing.
 
 The manifest uses Nothing's `test` key. The API-key restriction was removed
 for apps targeting Android 16+, but the metadata remains for compatibility.
 
 ## First real-ride test
 
-Rapido's exact notification wording and custom extras can change. The app
-shows the complete text payload it can read under **Latest Rapido notification
-payload**. If the ETA appears in the status bar but is not parsed, copy that
-diagnostic text into a GitHub issue (remove names, phone numbers, locations,
-PINs, or other personal details first). Add the new wording as a failing test
+Rapido's exact notification wording and custom extras can change. Developer
+tools show the complete text payload locally on the device. If the ETA appears
+in the status bar but is not parsed, use the warned raw dump only when the
+exact text is needed, and remove names, phone numbers, locations, PINs, or
+other personal details before sharing. Add the new wording as a failing test
 in `EtaParserTest`, then update the parser.
 
 Android 16 exposes the status-chip value used by Live Update notifications.
@@ -92,6 +123,10 @@ Next:
 
 This repository's source is MIT licensed. Nothing's proprietary Glyph Matrix
 SDK is not included and remains subject to [Nothing's SDK licence][gdk-license].
+
+The bundled Doto title font is provided by Google Fonts under the SIL Open
+Font License 1.1. Its licence text is included in
+`app/src/main/res/raw/doto_ofl.txt`.
 
 [gdk]: https://github.com/Nothing-Developer-Programme/GlyphMatrix-Developer-Kit
 [gdk-license]: https://github.com/Nothing-Developer-Programme/GlyphMatrix-Developer-Kit/blob/main/LICENSE.md

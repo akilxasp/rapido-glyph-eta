@@ -4,6 +4,12 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      build_apk:
+        description: Build and upload an installable debug APK
+        required: true
+        default: false
+        type: boolean
 
 jobs:
   test:
@@ -20,9 +26,13 @@ jobs:
           curl --fail --location \
             https://raw.githubusercontent.com/Nothing-Developer-Programme/GlyphMatrix-Developer-Kit/main/glyph-matrix-sdk-2.0.aar \
             --output app/libs/glyph-matrix-sdk-2.0.aar
-      - name: Test and build debug APK
-        run: ./gradlew testDebugUnitTest assembleDebug
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest
+      - name: Build debug APK
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_apk }}
+        run: ./gradlew assembleDebug
       - name: Upload installable APK
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_apk }}
         uses: actions/upload-artifact@v4
         with:
           name: rapido-glyph-eta-debug

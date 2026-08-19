@@ -1,7 +1,88 @@
 <resources>
     <string name="app_name">Rapido Glyph ETA</string>
+    <string name="brand_label">NOTHING × RAPIDO</string>
+    <string name="title">GLYPH ETA</string>
+    <string name="tagline">Pickup time, at a glance—without unlocking your phone.</string>
+    <string name="setup_heading">SETUP</string>
+    <string name="setup_required_heading">SETUP REQUIRED</string>
+    <string name="ready_heading">READY</string>
+    <string name="live_pickup_heading">LIVE PICKUP</string>
+    <string name="test_mode_heading">TEST MODE</string>
+    <string name="waiting_for_rapido">Waiting for a Rapido ride</string>
+    <string name="enable_notification_next">Enable notification access to continue</string>
+    <string name="select_glyph_next">Select Rapido ETA in Glyph Toys</string>
+    <string name="rapido_pickup">Rapido pickup</string>
+    <string name="minutes_value">%1$d MIN</string>
+    <string name="updated_just_now">Rapido pickup · Updated just now</string>
+    <string name="updated_minutes_ago">Rapido pickup · Updated %1$d min ago</string>
+    <string name="last_rapido_update_minutes">Last Rapido update %1$d min ago</string>
+    <string name="test_pickup">Simulated pickup · Counts down to zero</string>
+
+    <string name="notification_access_title">Notification access</string>
+    <string name="notification_access_description">Read Rapido’s live pickup ETA</string>
+    <string name="glyph_toy_title">Open Glyph Toys</string>
+    <string name="glyph_toy_description">Select Rapido ETA in the list</string>
+    <string name="essential_key_title">Refresh with Essential Key</string>
+    <string name="essential_key_description">Animate and refresh the current ETA</string>
+    <string name="status_not_set">NOT SET</string>
+    <string name="status_required">REQUIRED</string>
+    <string name="status_enabled">ENABLED</string>
+    <string name="status_confirmed">CONFIRMED</string>
+    <string name="status_optional">OPTIONAL</string>
+    <string name="setup_complete_review">SETUP COMPLETE · REVIEW  ›</string>
+    <string name="setup_complete_hide">SETUP COMPLETE · HIDE  ⌃</string>
+    <string name="setup_row_accessibility">%1$s, %2$s. %3$s</string>
+
+    <string name="glyph_brightness_heading">GLYPH BRIGHTNESS</string>
+    <string name="glyph_brightness_app_output">App output</string>
+    <string name="glyph_brightness_value">%1$d%%</string>
+    <string name="glyph_brightness_description">Controls only Rapido Glyph ETA frames. Nothing OS device brightness remains unchanged.</string>
+
+    <string name="custom_glyph_heading">CUSTOM GLYPH</string>
+    <string name="custom_glyph_title">Resting design</string>
+    <string name="custom_glyph_description">Import a Glyph Museum JSON design to replace the resting animation.</string>
+
+    <string name="notification_dialog_title">Allow Rapido notifications?</string>
+    <string name="notification_dialog_message">Rapido Glyph reads Rapido notifications only to find the pickup ETA. Processing stays on your phone.</string>
+    <string name="glyph_dialog_title">Select Rapido ETA</string>
+    <string name="glyph_dialog_message">In Nothing’s Glyph Toys screen, scroll to Rapido ETA and select it. If it was already selected after an update, toggle Always-on Glyph Toy off and on once.</string>
+    <string name="essential_key_dialog_title">Optional Essential Key refresh</string>
+    <string name="essential_key_dialog_message">This accessibility service listens only for the Essential Key hardware event. It cannot read screen content and does not keep the phone awake.</string>
+    <string name="continue_label">Continue</string>
+    <string name="open_glyph_toys">Open Glyph Toys</string>
+    <string name="glyph_settings_unavailable_title">Glyph Toys could not be opened</string>
+    <string name="glyph_settings_unavailable_message">Open Settings → Glyph Interface → Glyph Toys, then select Rapido ETA. Generic Android Settings was not opened because it does not lead to the correct page.</string>
+    <string name="settings_open_error">Could not open the required system setting</string>
+
+    <string name="developer_tools_collapsed">DEVELOPER TOOLS  ＋</string>
+    <string name="developer_tools_expanded">DEVELOPER TOOLS  −</string>
+    <string name="expanded">Expanded</string>
+    <string name="collapsed">Collapsed</string>
+    <string name="preview_seven_minutes">START 7 MIN TEST</string>
+    <string name="restart_seven_minutes">RESTART 7 MIN TEST</string>
+    <string name="preview_disabled_during_ride">Test unavailable during an active Rapido ride</string>
+    <string name="preview_requested">7 min test started. It will count down without changing live Rapido data.</string>
+    <string name="copy_redacted_dump">COPY REDACTED DEBUG DUMP</string>
+    <string name="copy_raw_dump">COPY RAW DEBUG DUMP</string>
+    <string name="refresh_diagnostics">REFRESH DIAGNOSTICS</string>
+    <string name="import_resting_glyph">IMPORT GLYPH DESIGN</string>
+    <string name="restore_resting_glyph">RESTORE BUILT-IN RESTING GLYPH</string>
+    <string name="resting_glyph_builtin">Resting Glyph · Built-in design</string>
+    <string name="resting_glyph_imported">Resting Glyph · Imported design active</string>
+    <string name="resting_glyph_imported_toast">Resting Glyph design imported and normalized to full brightness.</string>
+    <string name="resting_glyph_restored_toast">Built-in Resting Glyph restored.</string>
+    <string name="resting_glyph_import_error">Could not import design: %1$s</string>
+    <string name="latest_payload_heading">LATEST RAPIDO PAYLOAD · ON DEVICE</string>
+    <string name="no_payload">No Rapido notification captured yet.</string>
+    <string name="raw_dump_warning_title">Raw notification data</string>
+    <string name="raw_dump_warning_message">The raw dump may contain names, phone numbers, locations, or booking details. Review it before sharing.</string>
+    <string name="debug_dump_label">Rapido Glyph ETA debug dump</string>
+    <string name="redacted_dump_copied">Redacted debug dump copied. Review it before sharing.</string>
+    <string name="raw_dump_copied">Raw debug dump copied. Review it carefully before sharing.</string>
+
     <string name="notification_listener_label">Rapido ETA notification access</string>
+    <string name="essential_key_accessibility_label">Essential Key Glyph refresh</string>
+    <string name="essential_key_accessibility_description">Listens only for the Essential Key hardware event and refreshes the current Rapido ETA on the Glyph Matrix. It cannot read screen content.</string>
     <string name="toy_name">Rapido ETA</string>
     <string name="toy_summary">Shows your Rapido pickup ETA on the Glyph Matrix</string>
 </resources>
-

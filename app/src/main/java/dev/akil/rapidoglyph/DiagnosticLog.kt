@@ -1,6 +1,7 @@
 package dev.akil.rapidoglyph
 
 import android.content.Context
+import android.content.ComponentName
 import android.os.Build
 import android.provider.Settings
 import java.text.SimpleDateFormat
@@ -37,21 +38,24 @@ object DiagnosticLog {
         }
     }
 
-    fun dump(context: Context, etaStore: EtaStore): String {
+    fun dump(context: Context, etaStore: EtaStore, includeRawPayload: Boolean = false): String {
         val state = etaStore.read()
-        val sweep = etaStore.readSweep()
+        val displayEta = state.displayEta()
         val notificationAccess = Settings.Secure.getString(
             context.contentResolver,
             "enabled_notification_listeners",
         ).orEmpty().contains(context.packageName)
+        val accessibilityAccess = Settings.Secure.getString(
+            context.contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+        ).orEmpty().split(':').any {
+            ComponentName.unflattenFromString(it)?.className ==
+                EssentialKeyAccessibilityService::class.java.name
+        }
         val version = runCatching {
             val info = context.packageManager.getPackageInfo(context.packageName, 0)
             "${info.versionName} (${info.longVersionCode})"
         }.getOrElse { "unknown (${it.javaClass.simpleName})" }
-        val glyphSdk = runCatching {
-            Class.forName("com.nothing.ketchum.GlyphMatrixManager")
-            "present"
-        }.getOrElse { "missing (${it.javaClass.simpleName})" }
         val events = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
             .getString(KEY_EVENTS, "")
             .orEmpty()
@@ -67,16 +71,24 @@ object DiagnosticLog {
             android=${Build.VERSION.RELEASE} sdk=${Build.VERSION.SDK_INT}
             build=${Build.DISPLAY}
             notificationAccess=$notificationAccess
-            glyphSdk=$glyphSdk
-            storedMinutes=${state.minutes}
-            displayMinutes=${state.displayMinutes()}
+            essentialKeyAccessibility=$accessibilityAccess
+            glyphBrightnessPercent=${etaStore.glyphBrightnessPercent()}
+            restingGlyph=${if (etaStore.restingGlyphFrame() == null) "BUILT_IN" else "IMPORTED"}
+            displayMinutes=${displayEta?.minutes}
+            displaySource=${displayEta?.source}
             etaAtMillis=${state.etaAtMillis}
-            updatedAtMillis=${state.updatedAtMillis}
-            sweepEnabled=${sweep.enabled}
-            sweepMinutes=${sweep.minutes}
+            etaUpdatedAtMillis=${state.etaUpdatedAtMillis}
+            testEtaAtMillis=${state.testEtaAtMillis}
+            testStartedAtMillis=${state.testStartedAtMillis}
+            payloadUpdatedAtMillis=${state.payloadUpdatedAtMillis}
+            glyphConfirmedAtMillis=${state.glyphConfirmedAtMillis}
 
             --- latest Rapido notification payload ---
-            ${state.rawNotification.ifBlank { "(none)" }}
+            ${if (includeRawPayload) {
+                state.rawNotification.ifBlank { "(none)" }
+            } else {
+                DiagnosticRedactor.payloadSummary(state.rawNotification)
+            }}
 
             --- event log (oldest first) ---
             $events
