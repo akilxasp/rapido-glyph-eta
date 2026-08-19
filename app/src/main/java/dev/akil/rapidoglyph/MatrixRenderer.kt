@@ -20,8 +20,13 @@ object MatrixRenderer {
         'm' to listOf("000", "000", "111", "111", "101"),
     )
 
-    fun eta(minutes: Int?): IntArray {
-        if (minutes == null) return idle()
+    fun eta(minutes: Int?, restingFrame: IntArray? = null): IntArray {
+        if (minutes == null) {
+            return restingFrame
+                ?.takeIf { it.size == SIZE * SIZE }
+                ?.copyOf()
+                ?: idle()
+        }
         val text = minutes.coerceIn(0, 99).toString().plus("m")
         val width = text.length * 3 + (text.length - 1)
         val startX = (SIZE - width) / 2
@@ -44,14 +49,37 @@ object MatrixRenderer {
 
     fun idle(): IntArray =
         IntArray(SIZE * SIZE).also { frame ->
-            frame[indexOf(6, 6)] = MAX_BRIGHTNESS
-            listOf(4 to 4, 8 to 4, 8 to 8, 4 to 8).forEach { (x, y) ->
-                frame[indexOf(x, y)] = brightness(0.56f)
-            }
-            listOf(6 to 3, 9 to 6, 6 to 9, 3 to 6).forEach { (x, y) ->
-                frame[indexOf(x, y)] = brightness(0.25f)
+            val rows = listOf(
+                "0000000000000",
+                "0000000000000",
+                "0000000000000",
+                "0001100001000",
+                "0000220002000",
+                "0000022222000",
+                "0020020220000",
+                "0022032222000",
+                "0002024440000",
+                "0001242420000",
+                "0000241140000",
+                "0000000000000",
+                "0000000000000",
+            )
+            val brightnessByLevel = intArrayOf(0, 69, 255, 97, 184)
+            rows.forEachIndexed { y, row ->
+                row.forEachIndexed { x, level ->
+                    frame[indexOf(x, y)] = brightnessByLevel[level.digitToInt()]
+                }
             }
         }
+
+    fun withBrightness(frame: IntArray, percent: Int): IntArray {
+        val safePercent = percent.coerceIn(MIN_BRIGHTNESS_PERCENT, MAX_BRIGHTNESS_PERCENT)
+        if (safePercent == MAX_BRIGHTNESS_PERCENT) return frame.copyOf()
+        val factor = safePercent / MAX_BRIGHTNESS_PERCENT.toFloat()
+        return IntArray(frame.size) { index ->
+            (frame[index] * factor).roundToInt().coerceIn(0, MAX_BRIGHTNESS)
+        }
+    }
 
     fun essentialKeyAnimation(
         hourOfDay: Int,
@@ -120,33 +148,37 @@ object MatrixRenderer {
                 else -> hour12.toString()
             }
         }
-        val text = "$hourText:${minute.toString().padStart(2, '0')}"
-        val width = text.fold(0) { total, character ->
-            total + if (character == ':') 1 else 3
-        }
-        var offsetX = (SIZE - width) / 2
         val frame = IntArray(SIZE * SIZE)
-
-        text.forEach { character ->
-            if (character == ':') {
-                frame[indexOf(offsetX, CLOCK_START_Y + 1)] = MAX_BRIGHTNESS
-                frame[indexOf(offsetX, CLOCK_START_Y + 3)] = MAX_BRIGHTNESS
-                offsetX += 1
-            } else {
-                glyphs.getValue(character).forEachIndexed { y, row ->
-                    row.forEachIndexed { x, pixel ->
-                        if (pixel == '1') {
-                            frame[indexOf(offsetX + x, CLOCK_START_Y + y)] = MAX_BRIGHTNESS
-                        }
-                    }
-                }
-                offsetX += 3
-            }
-        }
+        drawCenteredText(frame, hourText, CLOCK_HOUR_Y)
+        drawCenteredText(
+            frame,
+            minute.toString().padStart(2, '0'),
+            CLOCK_MINUTE_Y,
+        )
         return frame
     }
 
-    private const val CLOCK_START_Y = 4
+    private fun drawCenteredText(frame: IntArray, text: String, startY: Int) {
+        val width = text.length * GLYPH_WIDTH + (text.length - 1) * GLYPH_SPACING
+        val startX = (SIZE - width) / 2
+        text.forEachIndexed { index, character ->
+            val offsetX = startX + index * (GLYPH_WIDTH + GLYPH_SPACING)
+            glyphs.getValue(character).forEachIndexed { y, row ->
+                row.forEachIndexed { x, pixel ->
+                    if (pixel == '1') {
+                        frame[indexOf(offsetX + x, startY + y)] = MAX_BRIGHTNESS
+                    }
+                }
+            }
+        }
+    }
+
+    private const val GLYPH_WIDTH = 3
+    private const val GLYPH_SPACING = 1
+    private const val CLOCK_HOUR_Y = 1
+    private const val CLOCK_MINUTE_Y = 7
+    private const val MIN_BRIGHTNESS_PERCENT = 1
+    private const val MAX_BRIGHTNESS_PERCENT = 100
 
     private fun indexOf(x: Int, y: Int) = y * SIZE + x
 

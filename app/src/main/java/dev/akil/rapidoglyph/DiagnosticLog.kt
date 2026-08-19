@@ -72,6 +72,8 @@ object DiagnosticLog {
             build=${Build.DISPLAY}
             notificationAccess=$notificationAccess
             essentialKeyAccessibility=$accessibilityAccess
+            glyphBrightnessPercent=${etaStore.glyphBrightnessPercent()}
+            restingGlyph=${if (etaStore.restingGlyphFrame() == null) "BUILT_IN" else "IMPORTED"}
             displayMinutes=${displayEta?.minutes}
             displaySource=${displayEta?.source}
             etaAtMillis=${state.etaAtMillis}

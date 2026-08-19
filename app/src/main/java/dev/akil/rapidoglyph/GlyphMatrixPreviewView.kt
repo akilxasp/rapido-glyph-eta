@@ -26,8 +26,15 @@ class GlyphMatrixPreviewView(context: Context) : View(context) {
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
     }
 
-    fun showMinutes(minutes: Int?) {
-        val next = MatrixRenderer.eta(minutes)
+    fun showMinutes(
+        minutes: Int?,
+        brightnessPercent: Int,
+        restingFrame: IntArray? = null,
+    ) {
+        val next = MatrixRenderer.withBrightness(
+            MatrixRenderer.eta(minutes, restingFrame),
+            brightnessPercent,
+        )
         if (!frame.contentEquals(next)) {
             frame = next
             invalidate()
@@ -45,6 +52,9 @@ class GlyphMatrixPreviewView(context: Context) : View(context) {
         frame.forEachIndexed { index, brightness ->
             val x = index % MatrixRenderer.SIZE
             val y = index / MatrixRenderer.SIZE
+            if (brightness > 0) {
+                onPaint.color = Color.rgb(brightness, brightness, brightness)
+            }
             canvas.drawCircle(
                 offsetX + (x + 0.5f) * cell,
                 offsetY + (y + 0.5f) * cell,

@@ -33,6 +33,15 @@
     <string name="setup_complete_hide">SETUP COMPLETE · HIDE  ⌃</string>
     <string name="setup_row_accessibility">%1$s, %2$s. %3$s</string>
 
+    <string name="glyph_brightness_heading">GLYPH BRIGHTNESS</string>
+    <string name="glyph_brightness_app_output">App output</string>
+    <string name="glyph_brightness_value">%1$d%%</string>
+    <string name="glyph_brightness_description">Controls only Rapido Glyph ETA frames. Nothing OS device brightness remains unchanged.</string>
+
+    <string name="custom_glyph_heading">CUSTOM GLYPH</string>
+    <string name="custom_glyph_title">Resting design</string>
+    <string name="custom_glyph_description">Import a Glyph Museum JSON design to replace the resting animation.</string>
+
     <string name="notification_dialog_title">Allow Rapido notifications?</string>
     <string name="notification_dialog_message">Rapido Glyph reads Rapido notifications only to find the pickup ETA. Processing stays on your phone.</string>
     <string name="glyph_dialog_title">Select Rapido ETA</string>
@@ -56,6 +65,13 @@
     <string name="copy_redacted_dump">COPY REDACTED DEBUG DUMP</string>
     <string name="copy_raw_dump">COPY RAW DEBUG DUMP</string>
     <string name="refresh_diagnostics">REFRESH DIAGNOSTICS</string>
+    <string name="import_resting_glyph">IMPORT GLYPH DESIGN</string>
+    <string name="restore_resting_glyph">RESTORE BUILT-IN RESTING GLYPH</string>
+    <string name="resting_glyph_builtin">Resting Glyph · Built-in design</string>
+    <string name="resting_glyph_imported">Resting Glyph · Imported design active</string>
+    <string name="resting_glyph_imported_toast">Resting Glyph design imported and normalized to full brightness.</string>
+    <string name="resting_glyph_restored_toast">Built-in Resting Glyph restored.</string>
+    <string name="resting_glyph_import_error">Could not import design: %1$s</string>
     <string name="latest_payload_heading">LATEST RAPIDO PAYLOAD · ON DEVICE</string>
     <string name="no_payload">No Rapido notification captured yet.</string>
     <string name="raw_dump_warning_title">Raw notification data</string>

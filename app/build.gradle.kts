@@ -11,8 +11,8 @@ android {
         applicationId = "dev.akil.rapidoglyph"
         minSdk = 34
         targetSdk = 36
-        versionCode = 9
-        versionName = "0.4.3"
+        versionCode = 11
+        versionName = "0.4.5"
 
     }
 

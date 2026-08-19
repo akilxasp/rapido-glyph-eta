@@ -55,6 +55,16 @@ Then:
 6. Expand **Developer tools** and use **Preview 7 min on Glyph** before a real ride.
    Preview frames expire after three seconds and never replace a live Rapido ETA.
 
+The in-app **Glyph brightness** slider scales only the frames submitted by
+Rapido Glyph ETA. It is stored independently and does not change Nothing OS's
+device-wide Glyph brightness setting.
+
+The main screen’s **Custom Glyph** section can import a Glyph Museum JSON design as the resting frame.
+The app expands Phone (4a) Pro's 137 physical LED values into the SDK's 13×13
+coordinate space; full 169-value matrix files are accepted too. It preserves
+relative intensity, scales the brightest pixel to full output, and stores the
+design locally until **Restore built-in Resting Glyph** is used.
+
 ## Essential Key refresh
 
 Android may suspend background timers while the phone is locked. For a
