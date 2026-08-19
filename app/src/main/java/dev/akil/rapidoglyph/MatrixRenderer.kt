@@ -44,18 +44,26 @@ object MatrixRenderer {
 
     fun idle(): IntArray =
         IntArray(SIZE * SIZE).also { frame ->
-            val eyes = listOf(4 to 4, 8 to 4)
-            val smile = listOf(
-                4 to 8,
-                4 to 9,
-                5 to 9,
-                6 to 9,
-                7 to 9,
-                8 to 9,
-                8 to 8,
+            val rows = listOf(
+                "0000000000000",
+                "0000000000000",
+                "0000000000000",
+                "0001100001000",
+                "0000220002000",
+                "0000022222000",
+                "0020020220000",
+                "0020032222000",
+                "0002024440000",
+                "0001242420000",
+                "0000241140000",
+                "0000000000000",
+                "0000000000000",
             )
-            (eyes + smile).forEach { (x, y) ->
-                frame[indexOf(x, y)] = MAX_BRIGHTNESS
+            val brightnessByLevel = intArrayOf(0, 69, 255, 97, 184)
+            rows.forEachIndexed { y, row ->
+                row.forEachIndexed { x, level ->
+                    frame[indexOf(x, y)] = brightnessByLevel[level.digitToInt()]
+                }
             }
         }
 
