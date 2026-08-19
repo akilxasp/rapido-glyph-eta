@@ -20,8 +20,13 @@ object MatrixRenderer {
         'm' to listOf("000", "000", "111", "111", "101"),
     )
 
-    fun eta(minutes: Int?): IntArray {
-        if (minutes == null) return idle()
+    fun eta(minutes: Int?, restingFrame: IntArray? = null): IntArray {
+        if (minutes == null) {
+            return restingFrame
+                ?.takeIf { it.size == SIZE * SIZE }
+                ?.copyOf()
+                ?: idle()
+        }
         val text = minutes.coerceIn(0, 99).toString().plus("m")
         val width = text.length * 3 + (text.length - 1)
         val startX = (SIZE - width) / 2
@@ -52,7 +57,7 @@ object MatrixRenderer {
                 "0000220002000",
                 "0000022222000",
                 "0020020220000",
-                "0020032222000",
+                "0022032222000",
                 "0002024440000",
                 "0001242420000",
                 "0000241140000",
