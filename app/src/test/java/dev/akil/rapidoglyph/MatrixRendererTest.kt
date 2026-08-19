@@ -30,17 +30,28 @@ class MatrixRendererTest {
         val frame = MatrixRenderer.eta(null)
 
         assertEquals(169, frame.size)
-        assertEquals(37, frame.count { it > 0 })
+        assertEquals(38, frame.count { it > 0 })
         assertEquals(6, frame.count { it == 69 })
         assertEquals(1, frame.count { it == 97 })
         assertEquals(7, frame.count { it == 184 })
-        assertEquals(23, frame.count { it == 255 })
+        assertEquals(24, frame.count { it == 255 })
         assertEquals(69, frame[3 * MatrixRenderer.SIZE + 3])
         assertEquals(255, frame[4 * MatrixRenderer.SIZE + 4])
         assertEquals(97, frame[7 * MatrixRenderer.SIZE + 5])
         assertEquals(184, frame[8 * MatrixRenderer.SIZE + 6])
         assertEquals(0, frame[12 * MatrixRenderer.SIZE + 12])
         assertTrue(frame.all { it in setOf(0, 69, 97, 184, 255) })
+    }
+
+    @Test
+    fun importedRestingFrameReplacesTheBuiltInFrameWithoutAliasingIt() {
+        val imported = IntArray(169).apply { this[42] = 255 }
+
+        val frame = MatrixRenderer.eta(null, imported)
+        imported[42] = 0
+
+        assertEquals(255, frame[42])
+        assertEquals(1, frame.count { it > 0 })
     }
 
     @Test
